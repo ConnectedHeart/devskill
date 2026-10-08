@@ -15,8 +15,11 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [1회용 코드 SSO와 refresh token 로테이션](인증·보안/1회용 코드 SSO와 refresh token 로테이션.md) — 토큰을 브라우저로 내보내지 않는 SSO 흐름, 오류 위치 구분, 로테이션 충돌
 - [Keycloak 토큰 클레임(jti·sid·sub)과 로그아웃 범위](인증·보안/Keycloak 토큰 클레임(jti·sid·sub)과 로그아웃 범위.md) — 재발급 시 바뀌는 값, 세션 단위 로그아웃, 자체 검증 서버의 틈
 - [토큰 보관 위치와 재발급 기준](인증·보안/토큰 보관 위치와 재발급 기준.md) — 메모리·쿠키·세션·DB 비교, 수명 절반 기준, 토큰 응답 캐시 금지, 쿠키 공유 범위
+- [Bearer 토큰과 세션 ID를 API 인증에 쓸 때의 차이](인증·보안/Bearer 토큰과 세션 ID를 API 인증에 쓸 때의 차이.md) — Authorization 헤더, invalid_grant 구분, 세션 ID 유출 범위, 전용 불투명 토큰
 
 ## Java·Spring
+- [synchronized와 잠금 객체 나누기(lock striping)](Java·Spring/synchronized와 잠금 객체 나누기(lock striping).md) — 잠금 객체의 의미, 키 해시로 N개 잠금 고르기, JVM 한계
+- [Spring 트랜잭션 전파와 자동 커밋](Java·Spring/Spring 트랜잭션 전파와 자동 커밋.md) — 트랜잭션 매니저와 커넥션 풀의 역할, REQUIRES_NEW가 필요한 경우, 정리 작업을 트랜잭션 밖으로
 - [외부 API 판정 결과의 로컬 캐시 설계](Java·Spring/외부 API 판정 결과의 로컬 캐시 설계.md) — 성공·실패 캐시, request 속성과의 역할 구분, 다중 서버 한계
 - [Future로 외부 호출 전체 시간 제한하기](Java·Spring/Future로 외부 호출 전체 시간 제한하기.md) — connect/read 타임아웃의 빈틈, ExecutionException 벗기기, cancel의 한계
 - [RestTemplate JSON 호출의 숫자 타입과 타임아웃](Java·Spring/RestTemplate JSON 호출의 숫자 타입과 타임아웃.md) — Gson·json-simple·Jackson의 타입 차이, 전용 RestTemplate
@@ -24,6 +27,8 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 
 ## DB·SQL
 - [AUTO_INCREMENT가 건너뛰며 증가하는 이유](DB·SQL/AUTO_INCREMENT가 건너뛰며 증가하는 이유.md) — auto_increment_increment와 Galera, LAST_INSERT_ID와 MAX의 차이
+- [SELECT FOR UPDATE로 다중 서버 중복 갱신 막기](DB·SQL/SELECT FOR UPDATE로 다중 서버 중복 갱신 막기.md) — 행 잠금 후 재판정, JVM 잠금과 함께 쓰는 이유
+- [시각 컬럼 타입 선택(epoch millis와 날짜 타입)](DB·SQL/시각 컬럼 타입 선택(epoch millis와 날짜 타입).md) — 타임존 위험, UTC 기록 컬럼, MySQL·Oracle 컬럼 타입 변경 차이
 
 ## 네트워크
 - [LDAP 연결 끊김 원인 구분](네트워크/LDAP 연결 끊김 원인 구분.md) — 오류 메시지별 의미, TTL 비교로 끊은 주체 찾기
@@ -40,3 +45,5 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 
 ## 기타
 - [JavaScript var 스코프와 중첩 루프 버그](기타/JavaScript var 스코프와 중첩 루프 버그.md) — 함수 스코프로 루프 변수가 공유되는 원인과 증상, 수정 방법
+- [Docker 컨테이너 파일을 호스트로 꺼내기](기타/Docker 컨테이너 파일을 호스트로 꺼내기.md) — docker cp 후 SFTP로 받기, 볼륨 마운트 경로 확인
+- [앱·사이트 사용 제한 프로그램의 구현 방식과 한계](기타/앱·사이트 사용 제한 프로그램의 구현 방식과 한계.md) — Windows 프로세스 감시, Android 접근성 서비스, 기본 제공 기능과 비교
