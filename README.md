@@ -9,6 +9,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [git bundle 생성과 병합](Git/git bundle 생성과 병합.md) — 저장소를 파일 하나로 옮기는 방법, FETCH_HEAD로 병합하는 이유, --no-ff
 - [cherry-pick 충돌 해결과 검증](Git/cherry-pick 충돌 해결과 검증.md) — 선행 커밋과 순서, worktree 시험, 원 커밋과 대조하는 검증 절차
 - [병합 커밋에서 사라진 코드 찾기](Git/병합 커밋에서 사라진 코드 찾기.md) — 같은 부모를 재병합해 비교, 지워짐 판정 기준, 복구와 이력 맞추기
+- [git commit --fixup과 autosquash](Git/git commit --fixup과 autosquash.md) — 뒤에 커밋이 쌓인 뒤 예전 커밋 고치기, amend와의 차이, 푸시 전에만 쓰는 이유
 
 ## 인증·보안
 - [Keycloak audience(aud)와 azp 검증](인증·보안/Keycloak audience(aud)와 azp 검증.md) — aud·azp의 의미, Audience 매퍼 추가, API 서버 검증과 적용 순서
@@ -16,6 +17,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [Keycloak 토큰 클레임(jti·sid·sub)과 로그아웃 범위](인증·보안/Keycloak 토큰 클레임(jti·sid·sub)과 로그아웃 범위.md) — 재발급 시 바뀌는 값, 세션 단위 로그아웃, 자체 검증 서버의 틈
 - [토큰 보관 위치와 재발급 기준](인증·보안/토큰 보관 위치와 재발급 기준.md) — 메모리·쿠키·세션·DB 비교, 수명 절반 기준, 토큰 응답 캐시 금지, 쿠키 공유 범위
 - [Bearer 토큰과 세션 ID를 API 인증에 쓸 때의 차이](인증·보안/Bearer 토큰과 세션 ID를 API 인증에 쓸 때의 차이.md) — Authorization 헤더, invalid_grant 구분, 세션 ID 유출 범위, 전용 불투명 토큰
+- [서버 간 호출 401 원인 좁히기와 로그 설계](인증·보안/서버 간 호출 401 원인 좁히기와 로그 설계.md) — 되묻는 호출 유무로 거부 지점 가르기, trace id, 비밀 값 로그 금지, GUID와 UUID
 
 ## Java·Spring
 - [synchronized와 잠금 객체 나누기(lock striping)](Java·Spring/synchronized와 잠금 객체 나누기(lock striping).md) — 잠금 객체의 의미, 키 해시로 N개 잠금 고르기, JVM 한계
@@ -32,11 +34,14 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 
 ## 네트워크
 - [LDAP 연결 끊김 원인 구분](네트워크/LDAP 연결 끊김 원인 구분.md) — 오류 메시지별 의미, TTL 비교로 끊은 주체 찾기
+- [SSH 공개키 인증과 비대화형 실행 옵션](네트워크/SSH 공개키 인증과 비대화형 실행 옵션.md) — ssh-copy-id와 Windows 대체 명령, BatchMode 등 -o 옵션, 종료 코드 255와 오류 구분
 
 ## Windows·자동화
 - [작업 스케줄러로 스크립트 자동 실행](Windows·자동화/작업 스케줄러로 스크립트 자동 실행.md) — UAC 없이 관리자 스크립트 실행, idle 감지, 창 없는 실행
 - [예약 재시작과 전원 설정](Windows·자동화/예약 재시작과 전원 설정.md) — shutdown /g와 ARSO, 절전 방지 powercfg
 - [PowerShell과 Git Bash 사용 시 주의점](Windows·자동화/PowerShell과 Git Bash 사용 시 주의점.md) — curl 별칭, CRLF 변환, 스크립트 인코딩, 1건 배열
+- [PowerShell 기초 문법(Java 개발자용)](Windows·자동화/PowerShell 기초 문법(Java 개발자용).md) — 변수 스코프, 단어 연산자, @ 기호, 객체 파이프, cmdlet 호출, 경로 명령
+- [PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시](Windows·자동화/PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시.md) — 창 없는 실행과 출력 리다이렉트, DoEvents, 프로세스 트리 종료, exe로 감싸도 소스가 보이는 이유
 
 ## Claude Code
 - [Remote Control로 휴대폰에서 이어 쓰기](Claude Code/Remote Control로 휴대폰에서 이어 쓰기.md) — 동작 구조, 켜는 방법, 끊기는 조건
@@ -47,3 +52,4 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [JavaScript var 스코프와 중첩 루프 버그](기타/JavaScript var 스코프와 중첩 루프 버그.md) — 함수 스코프로 루프 변수가 공유되는 원인과 증상, 수정 방법
 - [Docker 컨테이너 파일을 호스트로 꺼내기](기타/Docker 컨테이너 파일을 호스트로 꺼내기.md) — docker cp 후 SFTP로 받기, 볼륨 마운트 경로 확인
 - [앱·사이트 사용 제한 프로그램의 구현 방식과 한계](기타/앱·사이트 사용 제한 프로그램의 구현 방식과 한계.md) — Windows 프로세스 감시, Android 접근성 서비스, 기본 제공 기능과 비교
+- [톰캣 폴더 교체 배포 스크립트 설계](기타/톰캣 폴더 교체 배포 스크립트 설계.md) — 준비·교체 분리, 준비 완료 표시 파일, mkdir 잠금, ps -o 함정, 기동 확인과 되돌리기
