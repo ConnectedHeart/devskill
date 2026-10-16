@@ -1,6 +1,6 @@
 # git bundle 생성과 병합
 
-> 분류: Git · 최근 갱신: 2026-10-01
+> 분류: Git · 최근 갱신: 2026-10-15
 
 ## 한 줄 요약
 `git bundle`은 저장소(또는 일부 브랜치)를 파일 하나로 묶어 네트워크 없이 옮기는 방법이고, 받는 쪽에서는 그 파일을 원격 저장소처럼 clone/fetch 한다.
@@ -40,6 +40,8 @@ git bundle create ../inc.bundle main..feature   # 증분
 
 # 새로 받기
 git clone repo.bundle myrepo
+git clone release.bundle -b release myrepo   # 브랜치 하나만 담은 번들은 -b 로 그 브랜치를 지정
+git bundle verify release.bundle             # 만든 직후 완전한 이력인지 확인
 
 # 기존 저장소에 병합
 git bundle verify ../repo.bundle
@@ -55,7 +57,8 @@ git merge bundle-feature
 
 ## 주의할 점
 - 번들은 브랜치명으로 만든다. `HEAD`로 만들면 번들 안에 브랜치 이름이 없어 `git fetch <번들> <브랜치>`를 쓸 수 없다.
-- 로컬 브랜치 기준으로 담긴다. 원격 최신을 담으려면 먼저 pull 한다.
+- 로컬 브랜치 기준으로 담긴다. 원격 최신을 담으려면 먼저 pull 한다. 번들 결과를 보고할 때는 끝 커밋 해시와 "fetch 안 했음"을 같이 적는다.
+- 오래된 대형 저장소는 브랜치 하나를 담아도 전체 이력이 들어가 수백 MB가 된다. 받는 쪽이 이미 같은 이력을 갖고 있으면 증분 번들(`기준..브랜치`)이 훨씬 작다.
 - 번들 파일은 저장소 밖에 만들어야 실수로 커밋되지 않는다.
 - 이력을 공유하지 않는 저장소끼리는 merge가 거부된다. `--allow-unrelated-histories`는 사실상 전체 충돌이므로 `git format-patch` → `git am`이 낫다.
 - 저장소에 커밋된 설정 파일의 비밀값도 번들에 그대로 들어간다. 반출 전에 확인한다.
