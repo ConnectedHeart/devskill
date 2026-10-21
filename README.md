@@ -23,6 +23,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [JWT 구조와 서명 검증 조건](인증·보안/JWT 구조와 서명 검증 조건.md) — 암호화가 아닌 서명, 디코딩 방법, iss·exp·aud·JWKS 검증과 401 점검 순서
 - [LDAP bind로 AD 비밀번호 확인하기](인증·보안/LDAP bind로 AD 비밀번호 확인하기.md) — simple bind 판정, 비밀번호 동기화 패턴, 빈 비밀번호·인증서 검증·장애 처리 주의
 - [비밀번호로 토큰을 발급하는 API를 추가할 때 점검할 것](인증·보안/비밀번호로 토큰을 발급하는 API를 추가할 때 점검할 것.md) — 세션 기반 토큰 수명, 옮길 보안 검사, 실패 로그, 평문 전송과 쿼리스트링 금지
+- [화면 제한과 서버 측 접근 확인(IDOR)](인증·보안/화면 제한과 서버 측 접근 확인(IDOR).md) — 화면 숨김은 보안이 아님, ID로 데이터를 꺼내는 API만 확인 필요, 저장 전 대상의 소유 판정, 클라이언트가 보낸 값 신뢰 금지
 
 ## Java·Spring
 - [synchronized와 잠금 객체 나누기(lock striping)](Java·Spring/synchronized와 잠금 객체 나누기(lock striping).md) — 잠금 객체의 의미, 키 해시로 N개 잠금 고르기, JVM 한계
@@ -61,9 +62,9 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 
 ## Claude Code
 - [Remote Control로 휴대폰에서 이어 쓰기](Claude Code/Remote Control로 휴대폰에서 이어 쓰기.md) — 동작 구조, 켜는 방법, 끊기는 조건, 다른 기기에 세션 제목이 보이는 이유
-- [하네스 엔지니어링 개념](Claude Code/하네스 엔지니어링 개념.md) — 모델을 뺀 나머지 전부, 에이전트 루프·도구·컨텍스트·메모리·가드레일·피드백 루프, 지침 파일과 스킬 나누기
+- [하네스 엔지니어링 개념](Claude Code/하네스 엔지니어링 개념.md) — 모델을 뺀 나머지 전부, 에이전트 루프·도구·컨텍스트·메모리·가드레일·피드백 루프, 지침 파일과 스킬 나누기, 사용자 규칙과 AI 관리 문서 분리·변경 감지
 - [훅(hook) 작성 요령](Claude Code/훅(hook) 작성 요령.md) — 빠르게 끝내는 방법, 훅 출력이 컨텍스트로 들어가는 점
-- [예약 작업 무인 실행과 권한 규칙](Claude Code/예약 작업 무인 실행과 권한 규칙.md) — 고정 스크립트와 좁은 허용 규칙, 놓친 날 보충 장치의 구멍, 권한 요청 대기로 멈춘 실행, 목차 기반 요약
+- [예약 작업 무인 실행과 권한 규칙](Claude Code/예약 작업 무인 실행과 권한 규칙.md) — 고정 스크립트와 좁은 허용 규칙, 놓친 날 보충 장치의 구멍(UserPromptSubmit 훅으로 무인 세션 구분), 권한 요청 대기로 멈춘 실행, 목차 기반 요약
 - [로컬 환경 전환 불가 메시지](Claude Code/로컬 환경 전환 불가 메시지.md) — 메시지가 나오는 경우, + 버튼 세션은 실제로 로컬 실행, 재시작·폴더 재지정·정책 확인 순서
 - [Agent Skills SKILL.md 위치(Claude Code와 Codex)](Claude Code/Agent Skills SKILL.md 위치(Claude Code와 Codex).md) — SKILL.md 표준, .claude/skills와 .agents/skills 차이, AGENTS.md에 핵심 규칙 두기, 규칙·절차 분리 기준, CLAUDE.md import, 폴더 링크
 
@@ -83,3 +84,6 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [ps STAT 값(Ss+)과 남아 있는 tail -F 프로세스](기타/ps STAT 값(Ss+)과 남아 있는 tail -F 프로세스.md) — STAT 문자 의미, SSH로 띄운 tail이 세션 리더가 되는 이유, grep에 걸리는 로그 경로
 - [브라우저 마이크 녹음 기능을 붙일 때 확인할 것](기타/브라우저 마이크 녹음 기능을 붙일 때 확인할 것.md) — https 보안 컨텍스트, 앱 웹뷰 권한, 화면 이탈 시 마이크 해제, 다단 WebSocket 중계와 단기 티켓, 프록시 Upgrade·고정 세션
 - [HTML select 펼친 목록에 CSS가 안 먹는 이유](기타/HTML select 펼친 목록에 CSS가 안 먹는 이유.md) — 네이티브 옵션 목록, jQuery Mobile 자체 목록, 둥근 팝업에서 글자 잘림
+- [시간대 오프셋 형식 불일치로 생기는 기간 판정 오류](기타/시간대 오프셋 형식 불일치로 생기는 기간 판정 오류.md) — 형식이 다르면 조용히 UTC 반환, 시차만큼 기간 밖 판정, 정규화와 대조 테스트
+- [Chrome unload 이벤트 폐지와 Permissions policy 경고](기타/Chrome unload 이벤트 폐지와 Permissions policy 경고.md) — 경고의 의미, 라이브러리 출처 찾기, pagehide·visibilitychange·sendBeacon 대체
+- [audio 태그로 mp4 재생과 MIME 타입](기타/audio 태그로 mp4 재생과 MIME 타입.md) — audio/mp4 값, 206 응답, 코덱별 재생 차이, 허용 목록 한 곳 관리, 전사 서버 지원·용량
