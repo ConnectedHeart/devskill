@@ -1,6 +1,6 @@
 # format-patch와 am으로 커밋 옮기기와 적용 전 검증
 
-> 분류: Git · 최근 갱신: 2026-10-19
+> 분류: Git · 최근 갱신: 2026-10-22
 
 ## 한 줄 요약
 다른 브랜치나 다른 저장소로 커밋 몇 개를 넘길 때는 `git format-patch`로 패치 파일을 만들고 받는 쪽에서 `git am`으로 적용한다. 적용 전에는 체크아웃 없이 임시 인덱스로 `git apply --cached --check`를 돌려 충돌 여부를 미리 본다.
@@ -15,6 +15,9 @@
 - `git format-patch -o <폴더> <해시>^..<해시>` 또는 `git format-patch -o <폴더> -1 <해시>`를 커밋마다 실행한다. 여러 커밋을 한 번에 만들면 `0001-`, `0002-` 순번이 붙고 그 순서로 적용해야 한다.
 - 파일명은 제목의 ASCII 글자만 남기므로 한글 제목은 비어 보인다. 읽기 쉽게 이름을 바꿔도 패치 내용(헤더의 제목·작성자·날짜)은 그대로다.
 - `git am`은 원래 작성자·날짜·메시지를 보존한다. `git apply`는 변경만 적용하고 커밋은 만들지 않는다.
+- **제목 앞의 `[태그]`가 사라지는 문제**: `git am`은 기본으로 제목의 `[...]` 접두어를 지운다(`[PATCH]`를 지우는 동작). 커밋 제목이 `[모듈] 기능 - 요약`처럼 대괄호로 시작하면 그 태그까지 사라진다. `-k`(`--keep-subject`)는 `[PATCH]`까지 남기고, `--keep-non-patch`는 `[PATCH]`만 지우고 나머지 대괄호는 남긴다.
+- **파일명을 커밋 제목으로 바꿀 때**: 번호를 앞에 두어야(`0001 제목.patch`) `*.patch` 글롭 순서가 적용 순서와 같다. Windows에서 쓸 수 없는 `\ / : * ? " < > |`는 전각 문자(`／ ： ？ ＞`)로 바꾸면 읽기 쉽고, 너무 긴 제목은 잘라 낸 뒤 전체 제목은 별도 목록 파일에 둔다.
+- **선행 커밋 때문에 하나만 막힐 때**: 뒤 패치가 다른 사람 커밋이 만든 코드를 고친 것이면, 그 커밋을 원래 체리픽된 순서 자리에 선행 패치로 넣어야 한다. 막힌 패치 바로 앞이 아니라 원래 순서대로 넣어야 그 뒤 패치도 그대로 들어간다. 선행 커밋을 넣을 수 없으면 그 패치를 빼고 나머지만 다시 적용해 본다.
 
 ### 적용 전에 충돌 여부만 확인하기
 - 릴리즈 브랜치를 체크아웃하지 않고 확인하려면 임시 인덱스를 쓴다. `GIT_INDEX_FILE`을 임시 파일로 지정하고 `git read-tree 릴리즈브랜치`로 그 브랜치의 트리를 읽어 들인 뒤 `git apply --cached --check 패치`를 돌린다. 작업 폴더와 실제 인덱스는 건드리지 않는다.
@@ -37,9 +40,14 @@ git format-patch -o ~/Desktop/patches -1 <해시2>
 GIT_INDEX_FILE=/tmp/idx git read-tree release
 GIT_INDEX_FILE=/tmp/idx git apply --cached --check ~/Desktop/patches/*.patch
 
-# 받는 쪽에서 적용
+# 받는 쪽에서 적용 (제목의 [모듈] 태그 유지)
 git checkout release
-git am ~/Desktop/patches/*.patch
+git am --keep-non-patch ~/Desktop/patches/*.patch
+
+# 임시 워크트리에서 순서대로 실제 적용해 보기
+git worktree add C:/wt-try <기준커밋>
+git -C C:/wt-try am --keep-non-patch ~/Desktop/patches/*.patch
+git worktree remove --force C:/wt-try
 ```
 
 ## 주의할 점

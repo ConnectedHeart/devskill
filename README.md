@@ -7,19 +7,20 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 
 ## Git
 - [git bundle 생성과 병합](Git/git bundle 생성과 병합.md) — 저장소를 파일 하나로 옮기는 방법, FETCH_HEAD로 병합하는 이유, --no-ff
-- [cherry-pick 충돌 해결과 검증](Git/cherry-pick 충돌 해결과 검증.md) — 선행 커밋 찾기와 순서, 충돌이 많은 이유 3가지, worktree 시험, 공백만 다른 충돌, 검증 절차
+- [cherry-pick 충돌 해결과 검증](Git/cherry-pick 충돌 해결과 검증.md) — 선행 커밋 찾기와 순서, 충돌이 많은 이유 3가지, 선행 커밋 필요와 옆줄 겹침 구분, worktree 시험, 공백만 다른 충돌, 검증 절차
+- [브랜치 간 미반영 커밋 찾기(작성자·커미터·patch-id)](Git/브랜치 간 미반영 커밋 찾기(작성자·커미터·patch-id).md) — 작성일·커밋일과 --since, 작성자·커미터 차이, 여러 표기 매핑, 역병합 구조에서 --cherry-pick이 짝을 못 찾는 이유
 - [병합 커밋에서 사라진 코드 찾기](Git/병합 커밋에서 사라진 코드 찾기.md) — 같은 부모를 재병합해 비교, 지워짐 판정 기준, 복구와 이력 맞추기
 - [git commit --fixup과 autosquash](Git/git commit --fixup과 autosquash.md) — 뒤에 커밋이 쌓인 뒤 예전 커밋 고치기, amend와의 차이, 푸시 전에만 쓰는 이유
-- [푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기](Git/푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기.md) — force-push 대신 revert, 빠지는 정의의 호출처 확인, worktree 작업과 긴 경로 오류
-- [format-patch와 am으로 커밋 옮기기와 적용 전 검증](Git/format-patch와 am으로 커밋 옮기기와 적용 전 검증.md) — --cherry-pick으로 안 넘어간 커밋 찾기, 패치 생성, 임시 인덱스로 apply --cached --check, 여러 패치 순차 점검, 공백 경고
+- [푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기](Git/푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기.md) — force-push 대신 revert, 최신 순 revert, 함께 빼야 할 커밋·다른 저장소 영향, 빠지는 정의의 호출처 확인, worktree 작업과 긴 경로 오류
+- [format-patch와 am으로 커밋 옮기기와 적용 전 검증](Git/format-patch와 am으로 커밋 옮기기와 적용 전 검증.md) — --cherry-pick으로 안 넘어간 커밋 찾기, 패치 생성, am --keep-non-patch로 [태그] 유지, 커밋 제목 파일명, 선행 패치 순서, 임시 인덱스로 apply --cached --check, 공백 경고
 
 ## 인증·보안
 - [Keycloak audience(aud)와 azp 검증](인증·보안/Keycloak audience(aud)와 azp 검증.md) — aud·azp의 의미, Audience 매퍼 추가, API 서버 검증과 적용 순서
 - [1회용 코드 SSO와 refresh token 로테이션](인증·보안/1회용 코드 SSO와 refresh token 로테이션.md) — 토큰을 브라우저로 내보내지 않는 SSO 흐름, 오류 위치 구분, 로테이션 충돌
-- [Keycloak 토큰 클레임(jti·sid·sub)과 로그아웃 범위](인증·보안/Keycloak 토큰 클레임(jti·sid·sub)과 로그아웃 범위.md) — 재발급 시 바뀌는 값, 세션 단위 로그아웃, 자체 검증 서버의 틈
+- [Keycloak 토큰 클레임(jti·sid·sub)과 로그아웃 범위](인증·보안/Keycloak 토큰 클레임(jti·sid·sub)과 로그아웃 범위.md) — 재발급 시 바뀌는 값, 세션 단위 로그아웃, 자체 검증 서버의 틈, 앱 로그아웃에 OIDC 로그아웃 붙이기와 응답별 처리
 - [토큰 보관 위치와 재발급 기준](인증·보안/토큰 보관 위치와 재발급 기준.md) — 메모리·쿠키·세션·DB 비교, 수명 절반 기준, 토큰 응답 캐시 금지, 쿠키 공유 범위
 - [Bearer 토큰과 세션 ID를 API 인증에 쓸 때의 차이](인증·보안/Bearer 토큰과 세션 ID를 API 인증에 쓸 때의 차이.md) — Authorization 헤더, invalid_grant 구분, 세션 ID 유출 범위, 전용 불투명 토큰
-- [서버 간 호출 401 원인 좁히기와 로그 설계](인증·보안/서버 간 호출 401 원인 좁히기와 로그 설계.md) — 되묻는 호출 유무로 거부 지점 가르기, trace id, 비밀 값 로그 금지, GUID와 UUID
+- [서버 간 호출 401 원인 좁히기와 로그 설계](인증·보안/서버 간 호출 401 원인 좁히기와 로그 설계.md) — 되묻는 호출 유무로 거부 지점 가르기, 401과 403 구분, 헤더 이름 목록으로 위치 불일치 찾기, access 로그에 없으면 WAS 미도달, trace id, 비밀 값 로그 금지, GUID와 UUID
 - [JWT 구조와 서명 검증 조건](인증·보안/JWT 구조와 서명 검증 조건.md) — 암호화가 아닌 서명, 디코딩 방법, iss·exp·aud·JWKS 검증과 401 점검 순서
 - [LDAP bind로 AD 비밀번호 확인하기](인증·보안/LDAP bind로 AD 비밀번호 확인하기.md) — simple bind 판정, 비밀번호 동기화 패턴, 빈 비밀번호·인증서 검증·장애 처리 주의
 - [비밀번호로 토큰을 발급하는 API를 추가할 때 점검할 것](인증·보안/비밀번호로 토큰을 발급하는 API를 추가할 때 점검할 것.md) — 세션 기반 토큰 수명, 옮길 보안 검사, 실패 로그, 평문 전송과 쿼리스트링 금지
@@ -44,6 +45,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [시각 컬럼 타입 선택(epoch millis와 날짜 타입)](DB·SQL/시각 컬럼 타입 선택(epoch millis와 날짜 타입).md) — 타임존 위험, UTC 기록 컬럼, MySQL·Oracle 컬럼 타입 변경 차이
 - [PostgreSQL 개요와 MySQL·Oracle 문법 차이](DB·SQL/PostgreSQL 개요와 MySQL·Oracle 문법 차이.md) — 특징, 문법 비교표, 식별자 소문자화와 엄격한 형변환
 - [DB별 SQL에서 조용히 틀리는 조건식 패턴](DB·SQL/DB별 SQL에서 조용히 틀리는 조건식 패턴.md) — Oracle || 와 - 우선순위, MySQL IN 안의 OR, BETWEEN 인자 순서, 날짜에 숫자 빼기, 시각 붙은 날짜 = 비교, ORDER BY 없는 순서 의존
+- [Oracle DB 링크와 원격 객체 존재 확인](DB·SQL/Oracle DB 링크와 원격 객체 존재 확인.md) — 링크 존재·접속·원격 객체·읽기 권한 단계별 확인, 단계별 ORA 오류 의미, 시노님, 링크 세션 닫기
 
 ## 네트워크
 - [LDAP 연결 끊김 원인 구분](네트워크/LDAP 연결 끊김 원인 구분.md) — 오류 메시지별 의미, TTL 비교로 끊은 주체 찾기
@@ -56,14 +58,17 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 ## Windows·자동화
 - [작업 스케줄러로 스크립트 자동 실행](Windows·자동화/작업 스케줄러로 스크립트 자동 실행.md) — UAC 없이 관리자 스크립트 실행, idle 감지, 창 없는 실행
 - [예약 재시작과 전원 설정](Windows·자동화/예약 재시작과 전원 설정.md) — shutdown /g와 ARSO, 절전 방지 powercfg
-- [PowerShell과 Git Bash 사용 시 주의점](Windows·자동화/PowerShell과 Git Bash 사용 시 주의점.md) — curl 별칭, CRLF 변환, 스크립트 인코딩, 1건 배열
+- [PowerShell과 Git Bash 사용 시 주의점](Windows·자동화/PowerShell과 Git Bash 사용 시 주의점.md) — curl 별칭, CRLF 변환, 스크립트 인코딩, 1건 배열, 실행 정책 Process 범위, 사용자 환경 변수 상속, 함수·별칭 충돌, properties \u 이스케이프, 폴더 이동 막힘
 - [PowerShell 기초 문법(Java 개발자용)](Windows·자동화/PowerShell 기초 문법(Java 개발자용).md) — 변수 스코프, 단어 연산자, @ 기호, 객체 파이프, cmdlet 호출, 경로 명령
 - [PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시](Windows·자동화/PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시.md) — 창 없는 실행과 출력 리다이렉트, DoEvents, 프로세스 트리 종료, exe로 감싸도 소스가 보이는 이유
 
 ## Claude Code
 - [Remote Control로 휴대폰에서 이어 쓰기](Claude Code/Remote Control로 휴대폰에서 이어 쓰기.md) — 동작 구조, 켜는 방법, 끊기는 조건, 다른 기기에 세션 제목이 보이는 이유
-- [하네스 엔지니어링 개념](Claude Code/하네스 엔지니어링 개념.md) — 모델을 뺀 나머지 전부, 에이전트 루프·도구·컨텍스트·메모리·가드레일·피드백 루프, 지침 파일과 스킬 나누기, 사용자 규칙과 AI 관리 문서 분리·변경 감지
-- [훅(hook) 작성 요령](Claude Code/훅(hook) 작성 요령.md) — 빠르게 끝내는 방법, 훅 출력이 컨텍스트로 들어가는 점
+- [하네스 엔지니어링 개념](Claude Code/하네스 엔지니어링 개념.md) — 모델을 뺀 나머지 전부, 에이전트 루프·도구·컨텍스트·메모리·가드레일·피드백 루프, 지침 파일과 스킬 나누기, 사용자 규칙과 AI 관리 문서 분리·변경 감지, 승인 후 동기화, 규칙 충돌 검사
+- [지침과 지식 노트를 로딩 시점에 맞게 배치하기](Claude Code/지침과 지식 노트를 로딩 시점에 맞게 배치하기.md) — 기능별 로딩 시점, rules의 paths 지정 노트, 남길 것과 뺄 것, 로드 확인 방법
+- [권한 규칙으로 특정 명령만 자동 허용하기](Claude Code/권한 규칙으로 특정 명령만 자동 허용하기.md) — ask가 allow보다 우선, 입력 검사 래퍼만 allow, 자동 허용을 거둘 때의 함정, 지침 파일 보호의 빈틈
+- [MCP 서버 도입 판단과 Serena(jdtls)](Claude Code/MCP 서버 도입 판단과 Serena(jdtls).md) — MCP 장점, 망 분리 환경에서 안 맞는 이유, 로컬 DB 읽기 전용 조건, jdtls·Serena와 grep 비교
+- [훅(hook) 작성 요령](Claude Code/훅(hook) 작성 요령.md) — 빠르게 끝내는 방법, 훅 출력이 컨텍스트로 들어가는 점, SubagentStart/Stop과 Stop 훅에 끊기는 백그라운드 서브에이전트
 - [예약 작업 무인 실행과 권한 규칙](Claude Code/예약 작업 무인 실행과 권한 규칙.md) — 고정 스크립트와 좁은 허용 규칙, 놓친 날 보충 장치의 구멍(UserPromptSubmit 훅으로 무인 세션 구분), 권한 요청 대기로 멈춘 실행, 목차 기반 요약
 - [로컬 환경 전환 불가 메시지](Claude Code/로컬 환경 전환 불가 메시지.md) — 메시지가 나오는 경우, + 버튼 세션은 실제로 로컬 실행, 재시작·폴더 재지정·정책 확인 순서
 - [Agent Skills SKILL.md 위치(Claude Code와 Codex)](Claude Code/Agent Skills SKILL.md 위치(Claude Code와 Codex).md) — SKILL.md 표준, .claude/skills와 .agents/skills 차이, AGENTS.md에 핵심 규칙 두기, 규칙·절차 분리 기준, CLAUDE.md import, 폴더 링크
@@ -87,3 +92,6 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [시간대 오프셋 형식 불일치로 생기는 기간 판정 오류](기타/시간대 오프셋 형식 불일치로 생기는 기간 판정 오류.md) — 형식이 다르면 조용히 UTC 반환, 시차만큼 기간 밖 판정, 정규화와 대조 테스트
 - [Chrome unload 이벤트 폐지와 Permissions policy 경고](기타/Chrome unload 이벤트 폐지와 Permissions policy 경고.md) — 경고의 의미, 라이브러리 출처 찾기, pagehide·visibilitychange·sendBeacon 대체
 - [audio 태그로 mp4 재생과 MIME 타입](기타/audio 태그로 mp4 재생과 MIME 타입.md) — audio/mp4 값, 206 응답, 코덱별 재생 차이, 허용 목록 한 곳 관리, 전사 서버 지원·용량
+- [외부 API가 빈 응답을 줄 때 원인 가르기](기타/외부 API가 빈 응답을 줄 때 원인 가르기.md) — 공통 실패 안내의 원인 분리, 테스트 요청의 실제 재현 여부, 응답 시간 단서, 입력 조합 표, 화면 값과 저장 값 차이
+- [끼워 넣은 span이 주변 글꼴을 따르지 않는 이유](기타/끼워 넣은 span이 주변 글꼴을 따르지 않는 이유.md) — 태그 전역 CSS가 상속을 막는 원리, 표시 클래스에만 inherit
+- [화면 안내 메시지 설계(토스트와 알림창, 중복 알림)](기타/화면 안내 메시지 설계(토스트와 알림창, 중복 알림).md) — 성공은 토스트·실패는 알림창, 하위 함수는 결과만 반환, 결과 확인 후 상태 변경, 일괄 처리 안내
