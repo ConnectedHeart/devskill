@@ -1,11 +1,23 @@
 # format-patch와 am으로 커밋 옮기기와 적용 전 검증
 
-> 분류: Git · 최근 갱신: 2026-10-22
+> 분류: Git · 최근 갱신: 2026-10-23
 
 ## 한 줄 요약
 다른 브랜치나 다른 저장소로 커밋 몇 개를 넘길 때는 `git format-patch`로 패치 파일을 만들고 받는 쪽에서 `git am`으로 적용한다. 적용 전에는 체크아웃 없이 임시 인덱스로 `git apply --cached --check`를 돌려 충돌 여부를 미리 본다.
 
 ## 내용
+### git am이란
+- "apply mailbox"의 줄임말이다. 원래 메일로 받은 패치를 저장소에 넣으려고 만든 명령이다.
+- `format-patch`로 만든 파일에는 `From`(작성자), `Date`(작성 시각), `Subject`(제목), 본문, diff가 모두 들어 있다. `git am`은 이 정보로 커밋을 만들므로 커밋 메시지를 따로 쓸 필요가 없다. 커미터만 적용한 사람이 된다.
+
+| 명령 | 코드 변경 | 커밋 생성 | 메시지·작성자 |
+|---|---|---|---|
+| `git am` | 적용 | 패치마다 자동 | 패치 파일 것 그대로 |
+| `git apply` | 적용 | 안 함 | 직접 커밋해야 함 |
+| `git cherry-pick` | 적용 | 자동 | 원 커밋 것 그대로. 원 커밋이 같은 저장소에 있어야 함 |
+
+- 같은 저장소 안에서는 `cherry-pick`, 패치 파일로 주고받을 때는 `git am`을 쓴다. 받는 쪽 소스가 git 저장소가 아니면 `git apply`로 파일만 바꾼다.
+
 ### 어느 커밋이 안 넘어갔는지 찾기
 - `git log --cherry-pick --right-only --oneline 릴리즈..작업브랜치 --author=이름`: 체리픽으로 이미 들어간 커밋(패치 내용이 같은 것)은 빼고, 작업 브랜치에만 있는 커밋을 보여준다.
 - 해시만 다르고 내용이 같은 커밋은 `--cherry-pick`이 걸러 준다. 공백만 다른 경우는 못 거르므로 제목이 같은 커밋이 있으면 `git diff`로 다시 비교한다.
@@ -44,15 +56,26 @@ GIT_INDEX_FILE=/tmp/idx git apply --cached --check ~/Desktop/patches/*.patch
 git checkout release
 git am --keep-non-patch ~/Desktop/patches/*.patch
 
+# 0001만 빼고 적용 (Git Bash 중괄호 펼침: 0002 ~ 0010)
+git am "C:/<경로>/patches/"00{02..10}*.patch
+
 # 임시 워크트리에서 순서대로 실제 적용해 보기
 git worktree add C:/wt-try <기준커밋>
 git -C C:/wt-try am --keep-non-patch ~/Desktop/patches/*.patch
 git worktree remove --force C:/wt-try
 ```
 
+```powershell
+# PowerShell: 전체 적용 / 특정 패치 제외
+git am (Get-ChildItem "<경로>\patches\*.patch").FullName
+git am (Get-ChildItem "<경로>\patches\*.patch" | Where-Object Name -notlike '0001*' | Sort-Object Name).FullName
+```
+
 ## 주의할 점
 - 패치 파일에는 변경된 줄이 그대로 들어간다. 설정 파일의 비밀값이 커밋에 포함돼 있었다면 패치에도 들어간다. 반출 전에 내용을 본다.
-- `git am`이 충돌로 멈추면 `git am --abort`로 되돌리거나 충돌을 고친 뒤 `git am --continue`한다. 중간 상태로 두면 다음 작업이 꼬인다.
+- `git am`이 충돌로 멈추면 그 앞 패치들은 이미 커밋된 상태다. `git am --abort`(이번 am 전체를 실행 전으로), `git am --3way <파일>`(3-way 병합으로 충돌 표시 → 해결 후 `git add` → `git am --continue`), `git am --skip`(그 패치만 건너뜀) 중 하나로 정리한다. 중간 상태로 두면 다음 작업이 꼬인다.
+- 실행 전에 작업 폴더에 커밋하지 않은 변경이 없어야 한다.
+- Git Bash에서 `git am`에 `/c/...` 형태 경로를 주면 파일을 못 여는 경우가 있다. `C:/...` 형식으로 준다.
 - 커밋 하나를 통째로 옮기는 용도다. 일부만 필요하면 `git apply` 후 직접 커밋한다.
 
 ## 참고
