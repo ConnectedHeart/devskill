@@ -1,6 +1,6 @@
 # 외부 API 판정 결과의 로컬 캐시 설계
 
-> 분류: Java·Spring · 최근 갱신: 2026-10-06
+> 분류: Java·Spring · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 화면마다 필요한 외부 API 판정(권한 여부 등)을 Caffeine 같은 JVM 로컬 캐시에 둘 때 정해야 하는 것: 성공 캐시, 실패 캐시, 요청 범위 재사용, 다중 서버에서의 한계.
@@ -32,7 +32,17 @@
 - 권한 판정처럼 "잘못 열리면 안 되는" 값은 실패 시 차단(fail-closed)으로 둔다. 단, 그 판정으로 관리 화면 진입까지 막으면 관리자가 스스로 잠겨 설정을 풀 수 없게 될 수 있으니 복구 경로를 따로 확인한다.
 - 화면만 감추면 URL 직접 호출로 우회되므로, 같은 판정을 서버 쪽 엔드포인트에도 적용한다.
 
-## 예시
+## 핵심 코드
+### 1) 의존성 (Java 8이면 Caffeine 2.x)
+```xml
+<dependency>
+    <groupId>com.github.ben-manes.caffeine</groupId>
+    <artifactId>caffeine</artifactId>
+    <version>2.9.3</version>   <!-- 3.x는 Java 11 이상 -->
+</dependency>
+```
+
+### 2) 성공 캐시 + 실패 캐시
 ```java
 private final Cache<String, Permission> allowed = Caffeine.newBuilder()
         .expireAfterWrite(5, TimeUnit.MINUTES)
@@ -55,6 +65,54 @@ Permission resolve(String key) {
     } catch (Exception e) {
         failures.put(key, Boolean.TRUE);
         return Permission.DENIED;
+    }
+}
+```
+
+### 3) 캐시 키와 요청 범위 재사용, 로그인 시 비우기
+```java
+private static final String REQ_ATTR = MyPermissionService.class.getName() + ".permission";
+
+static String cacheKey(String userId, String deptId) {
+    return userId + "|" + deptId;            // 판정에 영향을 주는 값을 모두 넣는다
+}
+
+public Permission resolveForRequest(HttpServletRequest request, String userId, String deptId) {
+    Object done = request.getAttribute(REQ_ATTR);
+    if (done instanceof Permission) {
+        return (Permission) done;            // 같은 요청 안에서는 외부 호출 1번
+    }
+    Permission p = resolve(cacheKey(userId, deptId));
+    request.setAttribute(REQ_ATTR, p);
+    return p;
+}
+
+public void onLogin(String userId, String deptId) {   // 로그인 처리에서 호출
+    String key = cacheKey(userId, deptId);
+    allowed.invalidate(key);
+    failures.invalidate(key);                // 이 서버의 캐시만 비워진다
+}
+```
+
+### 4) 화면뿐 아니라 서버 엔드포인트에도 같은 판정
+```java
+public class PermissionInterceptor implements HandlerInterceptor {
+    private final MyPermissionService permissionService;
+
+    public PermissionInterceptor(MyPermissionService permissionService) {
+        this.permissionService = permissionService;
+    }
+
+    @Override
+    public boolean preHandle(HttpServletRequest req, HttpServletResponse res, Object handler)
+            throws Exception {
+        String userId = (String) req.getSession().getAttribute("userId");   // 세션 키는 환경에 맞게
+        String deptId = (String) req.getSession().getAttribute("deptId");
+        if (permissionService.resolveForRequest(req, userId, deptId) != Permission.ALLOWED) {
+            res.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return false;
+        }
+        return true;
     }
 }
 ```

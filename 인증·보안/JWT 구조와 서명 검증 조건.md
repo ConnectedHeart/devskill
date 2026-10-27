@@ -1,6 +1,6 @@
 # JWT 구조와 서명 검증 조건
 
-> 분류: 인증·보안 · 최근 갱신: 2026-10-13
+> 분류: 인증·보안 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 흔히 보는 JWT(access token)는 암호화된 것이 아니라 서명만 된 것이라 누구나 내용을 읽을 수 있고, 서버는 "복호화"가 아니라 서명·발급자·만료·대상(audience)을 검증한다.
@@ -38,7 +38,49 @@
 - `aud`에 서버가 요구하는 값이 있는지
 - 서버에서 JWKS 주소로 접속이 되는지
 
-## 예시
+## 핵심 코드
+### 1) 의존성 (Maven)
+```xml
+<dependency>
+  <groupId>com.nimbusds</groupId>
+  <artifactId>nimbus-jose-jwt</artifactId>
+  <version>${nimbus.version}</version>  <!-- 사용 중인 Java 버전을 지원하는 버전으로 -->
+</dependency>
+```
+
+### 2) API 서버: 서명·iss·exp·aud 검증 (알고리즘 고정)
+```java
+DefaultJWTProcessor<SecurityContext> p = new DefaultJWTProcessor<>();
+JWKSource<SecurityContext> jwks = new RemoteJWKSet<>(
+    new URL("<서버 주소>/realms/<realm>/protocol/openid-connect/certs"));   // JWKS 주소
+// RS256만 허용 → alg=none·HS256 등은 거부된다
+p.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, jwks));
+
+DefaultJWTClaimsVerifier<SecurityContext> v = new DefaultJWTClaimsVerifier<>(
+    Collections.singleton("<api-audience>"),                                // aud
+    new JWTClaimsSet.Builder().issuer("<서버 주소>/realms/<realm>").build(), // iss 정확히 일치
+    new HashSet<>(Arrays.asList("sub", "iat", "exp")),                      // 필수 클레임
+    null);
+v.setMaxClockSkew(30);                                                      // 초
+p.setJWTClaimsSetVerifier(v);
+
+try {
+    JWTClaimsSet claims = p.process(token, null);   // 성공하면 클레임을 그대로 쓴다
+    String user = claims.getStringClaim("preferred_username");
+} catch (BadJOSEException | JOSEException | ParseException e) {
+    log.info("jwt rejected: {}", e.getMessage());  // 토큰 값은 남기지 않는다
+}
+```
+
+### 3) iss·JWKS 주소 확인 (API 서버에서 실행)
+```bash
+# issuer 값을 글자 그대로 확인
+curl -s <서버 주소>/realms/<realm>/.well-known/openid-configuration | jq -r '.issuer, .jwks_uri'
+# API 서버에서 JWKS 주소에 접속되는지, kid 목록
+curl -s <서버 주소>/realms/<realm>/protocol/openid-connect/certs | jq -r '.keys[].kid'
+```
+
+### 4) 토큰 내용 읽기
 ```bash
 # 페이로드만 읽기 (Base64URL → JSON). 패딩이 없어 오류가 나면 '='를 덧붙인다
 echo '<토큰>' | cut -d. -f2 | tr '_-' '/+' | base64 -d

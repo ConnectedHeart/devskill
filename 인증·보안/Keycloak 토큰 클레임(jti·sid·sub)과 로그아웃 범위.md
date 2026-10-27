@@ -1,6 +1,6 @@
 # Keycloak 토큰 클레임(jti·sid·sub)과 로그아웃 범위
 
-> 분류: 인증·보안 · 최근 갱신: 2026-10-22
+> 분류: 인증·보안 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 재발급할 때마다 access token은 새로 만들어지지만 같은 로그인 세션(`sid`)에 속하고, 로그아웃은 "사용자"가 아니라 그 "세션"의 토큰만 무효로 만든다.
@@ -44,7 +44,8 @@
 - 같은 브라우저에서 다시 로그인해 저장 토큰을 갈아 끼울 때도 이전 세션을 같은 방식으로 끝내야 인증 서버에 세션이 쌓이지 않는다.
 - 이것으로 풀리는 것은 "로그인마다 세션이 쌓이고 재발급이 계속 가능한 문제"까지다. 이미 다른 서버에 넘긴 access token은 위에서 말한 대로 만료까지 쓰일 수 있다.
 
-## 예시
+## 핵심 코드
+### 1) 요청 형태: 유효성 확인과 세션 로그아웃
 토큰 유효성을 인증 서버에 직접 묻는 두 가지 방법:
 
 ```
@@ -59,6 +60,57 @@ GET <서버 주소>/realms/<realm>/protocol/openid-connect/userinfo
 # 세션 로그아웃
 POST <서버 주소>/realms/<realm>/protocol/openid-connect/logout
   client_id=<client>&client_secret=<secret>&refresh_token=<refresh_token>
+```
+
+### 2) curl로 실행 (토큰 원문 대신 클레임만 출력)
+```bash
+# introspection: client 인증은 Basic으로, 결과에서 판정에 필요한 값만
+curl -s -u "<client>:$CLIENT_SECRET" -d "token=$ACCESS_TOKEN" \
+  "<서버 주소>/realms/<realm>/protocol/openid-connect/token/introspect" | jq '{active, sub, sid, jti}'
+
+# 세션 로그아웃: 성공하면 204
+curl -s -o /dev/null -w "%{http_code}\n" -d "client_id=<client>" -d "client_secret=$CLIENT_SECRET" \
+  -d "refresh_token=$REFRESH_TOKEN" "<서버 주소>/realms/<realm>/protocol/openid-connect/logout"
+```
+
+### 3) 애플리케이션 로그아웃에 인증 서버 로그아웃 붙이기 (비동기, 짧은 타임아웃)
+```java
+SimpleClientHttpRequestFactory f = new SimpleClientHttpRequestFactory();
+f.setConnectTimeout(2000);
+f.setReadTimeout(3000);
+RestTemplate rest = new RestTemplate(f);
+ExecutorService logoutPool = Executors.newFixedThreadPool(2);
+
+public void logoutAtIdp(final String refreshToken) {
+    logoutPool.submit(() -> {                       // 응답을 기다리지 않는다
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("client_id", clientId);
+        form.add("client_secret", clientSecret);
+        form.add("refresh_token", refreshToken);
+        try {
+            rest.postForEntity(logoutUrl, form, String.class);
+            log.debug("idp logout ok");
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 400 && e.getResponseBodyAsString().contains("invalid_grant")) {
+                log.debug("idp session already ended");
+            } else {
+                log.warn("idp logout failed status={}", e.getStatusCode().value());
+            }
+        } catch (RestClientException e) {           // 5xx, 시간 초과, 연결 실패
+            log.warn("idp logout failed: {}", e.getClass().getSimpleName());
+        }
+    });
+}
+// 호출하는 쪽: logoutAtIdp(saved) 후 바로 자체 토큰 저장소 정리와 세션 무효화를 계속한다
+```
+
+### 4) 실험용: 토큰에서 식별 클레임만 꺼내 출력
+```java
+static String ids(String jwt) throws IOException {
+    JsonNode p = new ObjectMapper().readTree(Base64.getUrlDecoder().decode(jwt.split("\\.")[1]));
+    return "sub=" + p.path("sub").asText() + " sid=" + p.path("sid").asText()
+         + " jti=" + p.path("jti").asText() + " exp=" + p.path("exp").asLong();
+}
 ```
 
 검증 실험 설계: 같은 사용자로 두 번 로그인(세션 A, B) → A에서 두 번 재발급 → A만 로그아웃 → 모든 토큰을 introspect. A의 토큰만 전부 `active=false`이고 B가 살아 있으면 세션 단위임이 확인된다.

@@ -1,6 +1,6 @@
 # Spring 트랜잭션 전파와 자동 커밋
 
-> 분류: Java·Spring · 최근 갱신: 2026-10-07
+> 분류: Java·Spring · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 트랜잭션 매니저는 쿼리를 실행하는 장치가 아니라 자동 커밋을 끄고 여러 쿼리를 한 커넥션으로 묶는 장치이며, 외부 시스템을 바꾸는 작업은 호출한 쪽 트랜잭션과 분리(REQUIRES_NEW)해야 롤백으로 어긋나지 않는다.
@@ -23,7 +23,33 @@
 - **외부 시스템을 바꾸는 작업은 REQUIRES_NEW가 맞다**: 외부 API 호출 결과(예: 인증 서버가 옛 refresh token을 폐기하고 새것 발급)는 DB 롤백으로 되돌릴 수 없다. 바깥 트랜잭션에 합류했다가 뒤에서 예외가 나 롤백되면, DB에는 이미 폐기된 옛 값이 남는다. 또 행 잠금이 바깥 트랜잭션이 끝날 때까지 유지되어 다른 서버가 불필요하게 오래 기다린다.
 - **"예외를 던지면서 커밋도 해야 하는" 상황은 구조로 없앤다**: 기본 규칙은 예외 시 롤백이다. 실패 시 정리(죽은 행 삭제 등)를 트랜잭션 안에서 하고 예외를 던지면 삭제까지 취소된다. `no-rollback-for` 같은 특수 규칙을 늘리기보다, 트랜잭션 안에서는 실패 시 평범하게 롤백하고 정리 작업을 트랜잭션이 끝난 뒤(바깥 catch)에서 한다. 이미 죽은 데이터를 지우는 것이라 잠금 밖에서 해도 결과가 같고, 중복 삭제는 영향이 없다.
 
-## 예시
+## 핵심 코드
+### 1) 선언적 트랜잭션 설정 (XML, 이름 패턴 포인트컷)
+```xml
+<tx:annotation-driven transaction-manager="txManager"/>   <!-- @Transactional을 쓰려면 필요 -->
+
+<tx:advice id="txAdvice" transaction-manager="txManager">
+    <tx:attributes>
+        <tx:method name="refresh*" propagation="REQUIRES_NEW" rollback-for="Exception"/>
+        <tx:method name="*" propagation="REQUIRED" rollback-for="Exception"/>
+    </tx:attributes>
+</tx:advice>
+
+<aop:config>
+    <!-- 이 패턴에 안 맞는 클래스에는 트랜잭션이 걸리지 않는다(오류도 없음) -->
+    <aop:pointcut id="serviceMethods" expression="execution(* com.example..*Impl.*(..))"/>
+    <aop:advisor advice-ref="txAdvice" pointcut-ref="serviceMethods"/>
+</aop:config>
+```
+
+### 2) 지금 트랜잭션이 걸려 있는지 로그로 확인
+```java
+log.debug("tx active={}, name={}",
+        TransactionSynchronizationManager.isActualTransactionActive(),
+        TransactionSynchronizationManager.getCurrentTransactionName());
+```
+
+### 3) 별도 빈 + REQUIRES_NEW, 정리는 트랜잭션 밖에서
 ```java
 // 별도 빈: 새 트랜잭션에서 "잠그고 실행"만 담당
 @Service
@@ -41,6 +67,24 @@ try {
 } catch (GrantExpiredException e) {
     dao.delete(key);   // 트랜잭션이 롤백으로 끝난 뒤, 자동 커밋으로 단독 실행
     throw e;
+}
+```
+
+### 4) 별도 빈을 만들기 어려울 때: TransactionTemplate
+```java
+private final TransactionTemplate requiresNew;
+
+public MyService(PlatformTransactionManager txManager) {
+    this.requiresNew = new TransactionTemplate(txManager);
+    this.requiresNew.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+}
+
+public Row refresh(String key) {
+    // 같은 클래스 안에서도 프록시와 무관하게 새 트랜잭션이 열린다
+    return requiresNew.execute(status -> {
+        Row row = dao.selectForUpdate(key);
+        return refreshAndSave(row);       // 런타임 예외가 나면 롤백, 정상 종료면 커밋
+    });
 }
 ```
 

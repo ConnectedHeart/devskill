@@ -1,6 +1,6 @@
 # 시각 컬럼 타입 선택(epoch millis와 날짜 타입)
 
-> 분류: DB·SQL · 최근 갱신: 2026-10-07
+> 분류: DB·SQL · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 애플리케이션이 현재 시각과 직접 비교하는 만료 시각은 epoch millis 숫자로 두는 것이 타임존 문제에서 안전하고, 사람이 읽기만 하는 기록용 시각은 날짜 타입이 편하다.
@@ -15,25 +15,58 @@
 - **절충**: 로직이 읽는 만료 시각은 숫자로 두고, 로직에서 쓰지 않는 기록용 컬럼(마지막 갱신 시각 등)만 날짜 타입으로 두되 DB가 UTC 현재 시각을 직접 채우게 한다. 조회 시 로컬 시각과 시차가 있다는 점만 기억하면 된다.
 - **숫자 컬럼을 사람이 읽을 때**: 조회에서 변환한다.
 
-## 예시
+## 핵심 코드
+### 1) 숫자 시각 컬럼 정의
 ```sql
--- epoch millis를 읽기 좋게 (MySQL/MariaDB)
-SELECT FROM_UNIXTIME(expire_time / 1000) AS expire_dt FROM app_token;
+-- MySQL/MariaDB
+CREATE TABLE user_token (
+  token_key   VARCHAR(100) NOT NULL PRIMARY KEY,
+  expire_time BIGINT       NOT NULL COMMENT '만료 시각(epoch millis)'   -- 로직이 비교하는 값
+);
+-- Oracle
+CREATE TABLE user_token (
+  token_key   VARCHAR2(100) NOT NULL PRIMARY KEY,
+  expire_time NUMBER(19)    NOT NULL                                    -- epoch millis
+);
+```
 
+### 2) 애플리케이션: 저장과 만료 판정은 숫자끼리
+```java
+long now = System.currentTimeMillis();
+long expireAt = now + expiresInSec * 1000L;     // 외부 응답의 "몇 초 뒤 만료" → 절대 시각
+dao.saveToken(key, accessToken, expireAt);
+
+boolean expired = token.getExpireTime() <= System.currentTimeMillis() + 30_000L;  // 30초 여유
+```
+```sql
+-- 기준 시각은 애플리케이션이 넘긴다(NOW()/SYSDATE 비교 금지)
+SELECT token_key FROM user_token WHERE expire_time <= ?;
+```
+
+### 3) 사람이 읽을 때 변환
+```sql
+-- MySQL/MariaDB: FROM_UNIXTIME은 세션 타임존 기준으로 보여 준다
+SELECT FROM_UNIXTIME(expire_time / 1000) AS expire_dt FROM user_token;
+-- Oracle: UTC 기준 날짜로
+SELECT TO_DATE('1970-01-01', 'YYYY-MM-DD') + expire_time / 86400000 AS expire_utc FROM user_token;
+```
+
+### 4) 기록용 컬럼: DB가 UTC로 채우기, 숫자에서 날짜 타입으로 바꾸기
+```sql
 -- DB가 UTC 현재 시각을 채우기
 -- MySQL/MariaDB
-UPDATE app_token SET update_time = utc_timestamp() WHERE token_key = ?;
+UPDATE user_token SET update_time = utc_timestamp() WHERE token_key = ?;
 -- Oracle
-UPDATE app_token SET update_time = SYS_EXTRACT_UTC(SYSTIMESTAMP) WHERE token_key = ?;
+UPDATE user_token SET update_time = SYS_EXTRACT_UTC(SYSTIMESTAMP) WHERE token_key = ?;
 
 -- 숫자 컬럼을 날짜 타입으로 변경: 두 DB 모두 먼저 비운다
 -- MySQL/MariaDB
-DELETE FROM app_token;
-ALTER TABLE app_token MODIFY update_time DATETIME NOT NULL COMMENT '마지막 갱신 시각(UTC)';
+DELETE FROM user_token;
+ALTER TABLE user_token MODIFY update_time DATETIME NOT NULL COMMENT '마지막 갱신 시각(UTC)';
 -- Oracle
-DELETE FROM app_token;
+DELETE FROM user_token;
 COMMIT;
-ALTER TABLE app_token MODIFY (update_time DATE);
+ALTER TABLE user_token MODIFY (update_time DATE);
 ```
 
 ## 주의할 점

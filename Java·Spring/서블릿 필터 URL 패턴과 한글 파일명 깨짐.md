@@ -1,6 +1,6 @@
 # 서블릿 필터 URL 패턴과 한글 파일명 깨짐
 
-> 분류: Java·Spring · 최근 갱신: 2026-10-19
+> 분류: Java·Spring · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 문자 인코딩 필터가 `*.do` 같은 확장자 패턴에만 매핑돼 있으면, 확장자 없는 REST 스타일 주소로 들어온 multipart 업로드는 필터를 타지 않아 한글 파일명과 폼 값이 깨진다. 주소를 필터 패턴에 맞추거나 필터 매핑을 넓혀야 한다.
@@ -15,18 +15,61 @@
 - **경로 변수와 확장자**: Spring MVC에서 `{userId:.+}`처럼 점을 포함하도록 만든 경로 변수를 주소 맨 끝에 두고 `.do`를 붙이면, 정규식이 `.do`까지 변수 값으로 가져간다. 확장자를 붙일 때는 경로 변수를 앞쪽으로 옮기고 마지막 조각을 고정 문자열(`/list.do`)로 둔다.
 - 주소를 바꾸면 인터셉터·보안 설정의 경로 패턴(`/api/**`, `/app*/**` 등)에 여전히 맞는지도 확인한다.
 
-## 예시
+## 핵심 코드
+### 1) 문제가 되는 매핑
 ```xml
 <filter-mapping>
   <filter-name>encodingFilter</filter-name>
   <url-pattern>*.do</url-pattern>   <!-- 이 패턴 밖의 요청은 인코딩 설정이 안 됨 -->
 </filter-mapping>
 ```
+
+### 2) 인코딩 필터 정의와 매핑 넓히기 (web.xml)
+```xml
+<filter>
+  <filter-name>encodingFilter</filter-name>
+  <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+  <init-param><param-name>encoding</param-name><param-value>UTF-8</param-value></init-param>
+  <init-param><param-name>forceEncoding</param-name><param-value>true</param-value></init-param>
+</filter>
+
+<!-- filter-mapping 선언 순서 = 실행 순서. 파라미터를 읽는 다른 필터보다 위에 둔다 -->
+<filter-mapping>
+  <filter-name>encodingFilter</filter-name>
+  <url-pattern>*.do</url-pattern>
+</filter-mapping>
+<filter-mapping>
+  <filter-name>encodingFilter</filter-name>
+  <url-pattern>/api/*</url-pattern>   <!-- 서블릿 패턴은 /api/* (Spring식 /api/** 아님) -->
+</filter-mapping>
+```
+
+### 3) GET 쿼리스트링은 커넥터 설정 (Tomcat server.xml)
+```xml
+<Connector port="8080" protocol="HTTP/1.1" URIEncoding="UTF-8" />
+```
+
+### 4) 경로 변수와 확장자
 ```java
 // 나쁨: {userId:.+}.do 형태가 되면 ".do"까지 userId로 들어감
 @RequestMapping("/records/users/{userId:.+}")
 // 좋음: 변수를 앞으로, 마지막은 고정 이름 + 확장자
 @RequestMapping("/users/{userId}/records/{recordId}/view.do")
+```
+
+### 5) 업로드 주소에서 인코딩 확인
+```java
+@PostMapping("/users/{userId}/upload.do")
+public String upload(@PathVariable String userId,
+                     @RequestParam("file") MultipartFile file,
+                     HttpServletRequest request) {
+    // 필터를 탔으면 UTF-8, 안 탔으면 null 또는 ISO-8859-1
+    log.debug("charset={}, filename={}", request.getCharacterEncoding(), file.getOriginalFilename());
+    return "ok";
+}
+```
+```bash
+curl -F "file=@한글파일.txt" -F "title=제목" http://localhost:8080/<컨텍스트>/users/u1/upload.do
 ```
 
 ## 주의할 점

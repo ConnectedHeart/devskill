@@ -1,6 +1,6 @@
 # 브랜치 간 미반영 커밋 찾기(작성자·커미터·patch-id)
 
-> 분류: Git · 최근 갱신: 2026-10-21
+> 분류: Git · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 "개발 브랜치에는 있는데 릴리즈 브랜치에는 없는 내 커밋"을 뽑을 때는 해시 비교만으로는 부족하다. 날짜 두 종류, 작성자와 커미터, 한 사람의 여러 표기, 체리픽으로 바뀐 해시를 모두 고려해야 한다.
@@ -31,13 +31,48 @@
 - 제목을 바꿔 넣은 커밋, 여러 커밋을 합쳐 넣은 커밋, 개발 브랜치 전용 설정 커밋은 사람이 봐야 한다.
 - 같은 변경이 개발 브랜치에 두 번 들어간 경우(같은 제목·같은 변경)는 하나만 옮기면 된다.
 
-## 예시
+## 핵심 코드
+### 1) 비교 범위 전체 뽑기
 ```bash
 git fetch --prune origin                                    # 원격 기준으로 비교 (로컬 브랜치는 안 바뀜)
 git log --no-merges --format='%H|%an|%ae|%ad|%cn|%ce|%cd|%s' --date=iso origin/release..origin/dev
 git log --cherry-pick --right-only --no-merges origin/release...origin/dev
-git show <커밋> | git patch-id --stable                      # 커밋 하나의 patch-id
 git shortlog -sne --all                                      # 이름·이메일 조합 목록
+```
+
+### 2) 작성자 또는 커미터로 거르기 (여러 표기 포함)
+```bash
+# --author/--committer 는 정규식이다. 같은 옵션을 여러 번 주면 OR 로 묶인다
+git log --no-merges --format='%h %ad %an <%ae> %s' --date=short \
+  --author='me@example.com' --author='personal@example.com' \
+  origin/release..origin/dev
+
+# 작성일 기준으로 거르기: 범위 전체를 받은 뒤 날짜 열(%as = 작성일)로 걸러 낸다
+git log --no-merges --format='%as|%H|%s' origin/release..origin/dev \
+  | awk -F'|' '$1 >= "2026-01-01" && $1 <= "2026-01-31"'
+```
+
+### 3) 이름 표기 묶기 (.mailmap)
+```text
+# 저장소 루트의 .mailmap  — 형식: 대표이름 <대표이메일> 다른이름 <다른이메일>
+Hong Gildong <me@example.com> <personal@example.com>
+Hong Gildong <me@example.com> hong gildong <me@example.com>
+```
+```bash
+git shortlog -sne --all             # .mailmap 이 적용된 결과로 확인
+git log --format='%aN <%aE>' -1     # %aN/%aE = .mailmap 적용된 작성자
+```
+
+### 4) 제목이 같은 후보를 patch-id로 판정
+```bash
+git show <커밋> | git patch-id --stable                      # 커밋 하나의 patch-id
+# 미반영 후보 하나와, 비교 브랜치에서 제목이 같은 커밋을 비교
+cand=<후보커밋>
+subj=$(git log -1 --format=%s "$cand")
+pid=$(git show "$cand" | git patch-id --stable | cut -d' ' -f1)
+for c in $(git log --format=%H -F --grep="$subj" origin/release); do
+  [ "$(git show "$c" | git patch-id --stable | cut -d' ' -f1)" = "$pid" ] && echo "체리픽됨: $c"
+done
 ```
 
 ## 주의할 점

@@ -1,6 +1,6 @@
 # MCP 서버 도입 판단과 Serena(jdtls)
 
-> 분류: Claude Code · 최근 갱신: 2026-10-21
+> 분류: Claude Code · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 MCP 서버는 정해진 도구와 비밀값 격리가 장점이지만, 망이 분리된 자원에는 맞지 않을 수 있다. Java 영향 범위 분석에는 jdtls 기반 Serena가 grep보다 정확하지만, 문자열로 연결된 JSP·JS·XML 참조는 여전히 grep이 필요하다.
@@ -38,13 +38,71 @@ MCP 서버는 정해진 도구와 비밀값 격리가 장점이지만, 망이 �
 - 라이브러리 문서 MCP(Context7 등)는 오래된 프레임워크·버전을 거의 다루지 않아 효과가 적다.
 - 로컬 로그 파일은 파일 읽기 도구로 충분하다.
 
-## 예시
-```
+## 핵심 코드
+### 1) 설치 전 확인
+```text
 설치 전 확인 목록 (Serena)
 - Python 기반, 보통 uv로 실행 → PC에 Python이 없으면 uv가 받아 쓰는지 확인
 - jdtls는 JDK 17 이상으로 실행 (대상 프로젝트가 Java 8이어도 무관)
 - Maven 의존성이 사내 저장소에서만 받아지는 것이면 ~/.m2에 이미 있어야 분석이 정확
 - 큰 프로젝트는 첫 색인에 시간이 걸림
+```
+```bash
+java -version          # jdtls 실행용 JDK 17 이상인지
+uv --version           # 없으면 uv 부터 설치
+ls ~/.m2/repository | head   # 의존성이 로컬에 받아져 있는지
+```
+
+### 2) Serena 설치와 Claude Code 등록
+```bash
+# Serena 문서 기준 설치 (MCP 마켓플레이스 설치는 권하지 않는다고 안내)
+uv tool install -p 3.13 serena-agent
+serena init
+
+# 이 프로젝트에서만 (프로젝트 폴더에서 실행)
+claude mcp add serena -- serena start-mcp-server --context claude-code --project "$(pwd)"
+# 모든 프로젝트에서 (실행 폴더를 프로젝트로)
+claude mcp add --scope user serena -- serena start-mcp-server --context claude-code --project-from-cwd
+
+claude mcp list        # 등록과 연결 상태 확인
+```
+세션 안에서는 `/mcp`로 서버 상태와 도구 목록을 본다.
+
+### 3) 팀과 공유하는 프로젝트 설정 (.mcp.json)
+```json
+{
+  "mcpServers": {
+    "serena": {
+      "command": "serena",
+      "args": ["start-mcp-server", "--context", "claude-code", "--project-from-cwd"]
+    }
+  }
+}
+```
+
+### 4) 도구별 권한: 조회는 허용, 쓰기는 묻기
+```json
+{
+  "permissions": {
+    "allow": [
+      "mcp__serena__find_symbol",
+      "mcp__serena__find_referencing_symbols",
+      "mcp__serena__get_symbols_overview"
+    ],
+    "ask": [
+      "mcp__serena__replace_symbol_body"
+    ]
+  }
+}
+```
+권한 이름은 `mcp__<서버 이름>__<도구 이름>` 형식이다. 실제 도구 이름은 `/mcp`에서 확인하고 맞춘다.
+
+### 5) 로컬 DB에 붙일 때 SELECT 전용 계정 (MySQL 예)
+```sql
+-- DB 관리자가 직접 실행. 비밀번호는 사람이 넣고 MCP 설정에만 둔다
+CREATE USER 'agent_ro'@'localhost' IDENTIFIED BY '<비밀번호>';
+GRANT SELECT ON <DB 이름>.* TO 'agent_ro'@'localhost';
+SHOW GRANTS FOR 'agent_ro'@'localhost';   -- SELECT 만 있는지 확인
 ```
 
 ## 주의할 점

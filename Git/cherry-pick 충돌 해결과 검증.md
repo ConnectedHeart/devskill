@@ -1,6 +1,6 @@
 # cherry-pick 충돌 해결과 검증
 
-> 분류: Git · 최근 갱신: 2026-10-21
+> 분류: Git · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 여러 커밋을 다른 브랜치로 체리픽할 때는 순서와 선행 커밋이 중요하고, 끝난 뒤에는 원 커밋의 변경분과 파일 단위로 대조해야 누락을 잡을 수 있다.
@@ -51,20 +51,70 @@
 6. 새 SQL이 쓰는 테이블·컬럼이 대상 브랜치의 DDL에 있는지, 새로 읽는 설정 키가 있는지, 이름으로 주입하는 빈이 있는지
 7. 서버와 클라이언트가 두 저장소로 나뉜 기능이면 짝 커밋이 양쪽 대상 브랜치에 모두 들어갔는지(한쪽만 들어가면 메뉴는 보이는데 화면이 없는 식의 반쪽 기능이 된다)
 
-## 예시
+## 핵심 코드
+### 1) 옮길 커밋 목록 뽑기
+```bash
+git fetch origin
+git log --oneline --no-merges --reverse origin/<대상>..origin/<원본>   # 원본에만 있는 커밋(오래된 것부터)
+git log --oneline --no-merges --cherry-pick --right-only origin/<대상>...origin/<원본>  # 내용이 같은 커밋 제외
+git log --format=%s origin/<대상> | sort -u > target-subjects.txt     # 대상 브랜치의 커밋 제목 목록(제목 비교용)
+```
+
+### 2) 임시 worktree에서 시험 체리픽
+```bash
+git config merge.conflictStyle diff3          # 충돌 표시에 base 포함
+git worktree add ../trial <브랜치>            # 시험용 worktree (그 브랜치가 다른 폴더에 체크아웃돼 있으면 실패)
+git worktree add --detach ../trial origin/<대상>   # 브랜치 없이 원격 끝에서 시험할 때
+cd ../trial
+git cherry-pick <커밋1> <커밋2> <커밋3>       # 오래된 것부터 시간순
+# 커밋 없이 이어 적용만 해 보기: git cherry-pick -n <커밋1> <커밋2> 후 git reset --hard
+cd -
+git worktree remove ../trial                  # 변경이 남아 있으면 --force
+```
+
+### 3) 충돌 시 선행 커밋 찾기
+```bash
+git status --short                                          # UU = 충돌 파일
+git log -S'functionName(' --oneline <원본 브랜치> -- <경로>   # 그 문자열을 넣거나 뺀 커밋
+git blame -L <시작줄>,<끝줄> <커밋>^ -- <경로>               # 고치려는 줄을 넣은 커밋
+git branch -a --contains <선행커밋>                          # 해시 기준. 체리픽된 사본은 제목으로 다시 찾는다
+git log --oneline origin/<대상> --grep='<선행커밋 제목 일부>' -F
+```
+
+### 4) 해결 진행, 중단, 상태 보존
+```bash
+git add <해결한 파일>
+git cherry-pick --continue      # 다음 커밋으로
+git cherry-pick --skip          # 이 커밋만 건너뜀
+git cherry-pick --abort         # 이번 체리픽 전체를 시작 전으로
+
+# 해결해 둔 상태를 남기고 다른 일부터 할 때
+git cherry-pick --quit          # 진행 상태만 끝냄(작업 트리 유지)
+git switch -c backup/cherry-wip
+git add -A && git commit -m "WIP: 체리픽 충돌 해결 중"
+```
+
+### 5) 중간 커밋에 변경 합치기 (푸시 전에만)
+```bash
+before=$(git rev-parse HEAD)                       # 합치기 전 끝 커밋
+git add <파일>
+git commit --fixup=<중간커밋>
+GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash <중간커밋>~1   # 편집기 없이 자동 정렬대로 진행
+git diff "$before" HEAD                            # 의도한 변경 외에 차이가 없어야 함
+```
+
+### 6) 결과 검증
 ```bash
 git show <커밋> -- <경로>                     # 그 커밋이 그 파일에서 바꾼 내용
 git show <커밋> -- '*파일명'                  # 경로 대신 패턴
 git show --numstat --format= <커밋> -- <파일>  # 추가/삭제 줄 수만
 git show <커밋>:<경로>                        # 그 커밋 시점의 파일 전체
 
-git config merge.conflictStyle diff3          # 충돌 표시에 base 포함
-git worktree add ../trial <브랜치>            # 시험용 worktree
-git worktree remove ../trial
-
-git log -S'functionName(' --oneline <원본 브랜치> -- <경로>   # 그 문자열을 넣거나 뺀 커밋
-git log --oneline --no-merges <대상>..<원본>                  # 원본에만 있는 커밋
-git log --format=%s <대상> | sort -u                           # 대상 브랜치의 커밋 제목 목록(제목 비교용)
+diff <(git show --name-only --format= <원커밋> | sort) <(git show --name-only --format= <결과커밋> | sort)  # 변경 파일 목록 비교
+git show <원커밋> | git patch-id --stable     # 두 값이 같으면 변경분이 완전히 같다
+git show <결과커밋> | git patch-id --stable
+git grep -nE '^(<<<<<<<|>>>>>>>)( |$)|^=======$'   # 충돌 표시 전체 검색(소스 외 텍스트 파일 포함)
+node --check <경로>.js                        # JS 문법 검사
 ```
 
 ## 주의할 점

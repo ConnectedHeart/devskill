@@ -1,6 +1,6 @@
 # git bundle 생성과 병합
 
-> 분류: Git · 최근 갱신: 2026-10-15
+> 분류: Git · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 `git bundle`은 저장소(또는 일부 브랜치)를 파일 하나로 묶어 네트워크 없이 옮기는 방법이고, 받는 쪽에서는 그 파일을 원격 저장소처럼 clone/fetch 한다.
@@ -31,28 +31,51 @@
 - `--no-ff`는 병합 커밋을 반드시 만든다. 합친 시점이 남고 `git revert -m 1 <병합 커밋>` 한 번으로 묶음 전체를 되돌릴 수 있다.
 - 양쪽이 이미 갈라져 있으면 어차피 병합 커밋이 생기므로 옵션 유무와 결과가 같다.
 
-## 예시
+## 핵심 코드
+### 1) 번들 만들기 (보내는 쪽)
 ```bash
-# 만들기
+git switch feature && git pull          # 원격 최신을 담으려면 먼저 받는다
 git bundle create ../repo.bundle --all          # 전체
 git bundle create ../feature.bundle feature     # 브랜치 하나
-git bundle create ../inc.bundle main..feature   # 증분
+git bundle create ../inc.bundle main..feature   # 증분 (받는 쪽에 main 끝 커밋이 있어야 함)
+git bundle verify ../feature.bundle             # 만든 직후 확인
+git rev-parse feature                           # 보고용 끝 커밋 해시
+```
 
-# 새로 받기
+### 2) 새로 받기 (받는 쪽, 저장소 없음)
+```bash
 git clone repo.bundle myrepo
 git clone release.bundle -b release myrepo   # 브랜치 하나만 담은 번들은 -b 로 그 브랜치를 지정
-git bundle verify release.bundle             # 만든 직후 완전한 이력인지 확인
+git bundle verify release.bundle             # 완전한 이력인지 확인
 
-# 기존 저장소에 병합
+# 나중에 원래 원격으로 바꿔 연결
+git -C myrepo remote set-url origin <원격 URL>
+```
+
+### 3) 기존 저장소에 병합
+```bash
 git bundle verify ../repo.bundle
 git bundle list-heads ../repo.bundle
 git fetch ../repo.bundle feature
-git log --oneline HEAD..FETCH_HEAD
-git merge FETCH_HEAD
+git log --oneline HEAD..FETCH_HEAD       # 들어올 커밋 미리 보기
+git merge --no-ff FETCH_HEAD             # fetch 직후 바로 병합 (FETCH_HEAD는 다음 fetch 때 덮어써짐)
+```
 
-# 이름을 붙여 받기
+### 4) 이름을 붙여 받기
+```bash
 git fetch ../repo.bundle feature:bundle-feature
 git merge bundle-feature
+
+# 번들을 원격처럼 등록해 두고 여러 번 받기
+git remote add usb /<경로>/repo.bundle
+git fetch usb                            # usb/<브랜치> 로 받아짐
+```
+
+### 5) 큰 번들 나누기와 합치기
+```bash
+split -b 1000m -d ../repo.bundle ../repo.bundle.part   # repo.bundle.part00, part01 ...
+cat repo.bundle.part* > repo.bundle                     # 받는 쪽에서 합치기
+git bundle verify repo.bundle
 ```
 
 ## 주의할 점

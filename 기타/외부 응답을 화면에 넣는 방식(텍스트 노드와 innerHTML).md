@@ -1,6 +1,6 @@
 # 외부 응답을 화면에 넣는 방식(텍스트 노드와 innerHTML)
 
-> 분류: 기타 · 최근 갱신: 2026-10-13
+> 분류: 기타 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 AI 서버 같은 외부 응답을 화면에 넣을 때 텍스트 노드로 넣으면 안전하지만 HTML 태그가 글자로 보이고, `innerHTML`로 넣으면 모양은 살지만 XSS와 원치 않는 컨트롤 노출이 따라온다. 어느 쪽으로 할지와 응답 형식을 함께 정해야 한다.
@@ -23,7 +23,9 @@ AI 서버 같은 외부 응답을 화면에 넣을 때 텍스트 노드로 넣�
 - 같은 본문이라도 경로마다 필터가 다를 수 있다. 편집 화면으로 불러올 때는 그대로 오고, 조회 화면 응답에서는 화이트리스트로 속성이 빠지는 식이다. `data-*` 속성에 기능을 걸어 둘 때는 저장 → 편집 재로드 → 조회 각 경로에서 속성이 살아남는지 따로 확인한다.
 - 에디터 자체의 속성 필터도 확인한다. CKEditor는 `allowedContent` 설정에 따라 허용하지 않은 속성을 제거한다.
 
-## 예시
+## 핵심 코드
+
+### 1) 텍스트로 넣기와 목록 태그 풀기
 ```javascript
 // 안전하게 넣기: 줄바꿈만 <br>로
 function setText(el, value) {
@@ -41,6 +43,48 @@ function htmlToPlain(s) {
             .replace(/<[^>]+>/g, "")
             .trim();
 }
+```
+
+### 2) 허용 태그만 HTML로 렌더링 (DOMPurify)
+```html
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+```
+```javascript
+function setLimitedHtml(el, value) {
+    el.innerHTML = DOMPurify.sanitize(String(value), {
+        ALLOWED_TAGS: ["ul", "ol", "li", "br", "p", "b", "strong", "em"],   // 화이트리스트
+        ALLOWED_ATTR: []                                                    // 속성은 모두 제거
+    });
+}
+```
+
+### 3) 다른 화면의 HTML을 미리보기로 넣을 때 컨트롤 빼기
+```javascript
+function showPreview(target, html) {
+    // DOMParser 로 만든 문서는 스크립트·이벤트가 실행되지 않는다. 원본 html 문자열은 그대로 둔다
+    var doc = new DOMParser().parseFromString(html, "text/html");
+    doc.body.querySelectorAll("input, button, select, textarea").forEach(function (n) { n.remove(); });
+    target.innerHTML = doc.body.innerHTML;     // 신뢰할 수 없는 값이면 여기서 DOMPurify 를 거친다
+}
+```
+```css
+/* 또는 지우지 않고 미리보기 영역에서만 숨기기 */
+.preview input, .preview button, .preview select, .preview textarea { display: none; }
+```
+
+### 4) 서버 쪽 화이트리스트 필터 (jsoup, Java 8)
+```java
+// jsoup 1.14.1+ 는 Safelist (이전 버전은 Whitelist). 목록에 없는 태그·속성은 지워진다
+Safelist list = Safelist.basic()
+        .addAttributes(":all", "data-ref");          // data-* 를 쓰려면 이름을 하나씩 등록해야 남는다
+String safe = Jsoup.clean(html, list);
+```
+
+### 5) CKEditor 4: 사용자 정의 속성 지우지 않게 하기
+```javascript
+CKEDITOR.replace("editor", {
+    extraAllowedContent: "span[data-*]; div[data-*]"   // 허용 콘텐츠 필터(ACF)에 추가
+});
 ```
 
 ## 주의할 점

@@ -1,6 +1,6 @@
 # docker exec 창을 닫아도 컨테이너 안 프로세스가 남는 이유
 
-> 분류: 기타 · 최근 갱신: 2026-10-23
+> 분류: 기타 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 `ssh -t host "docker exec -it <컨테이너> tail -F <로그>"`로 띄운 창을 닫아도 컨테이너 안의 `tail`은 신호를 받지 않아 계속 남는다. `-t`를 빼고 `-i`만 쓴 뒤, 입력이 끊기면(EOF) 스스로 `tail`을 죽이는 작은 스크립트로 감싸면 해결된다.
@@ -19,7 +19,9 @@
 - 컨테이너 안에서 `tail`을 백그라운드로 돌리고, `cat`으로 입력이 끝나기를 기다렸다가 `kill`로 `tail`을 끈다. `cat`은 "연결이 아직 살아 있나"를 지켜보는 감시자 역할이다.
 - 창용 ssh에 `-o ServerAliveInterval=30`을 붙이면 네트워크가 끊겼을 때 PC 쪽 ssh가 빨리 끝난다. 서버 쪽 정리는 sshd 설정(ClientAlive*)에 달려 있다.
 
-## 예시
+## 핵심 코드
+
+### 1) 입력이 끊기면 tail 을 끄는 감싸기 명령
 ```bash
 # 창을 닫거나 Ctrl+C를 누르면 컨테이너 안 tail도 함께 끝난다
 ssh -o ServerAliveInterval=30 user@host \
@@ -30,6 +32,30 @@ docker exec <컨테이너> ps -ef | grep 'tail -n 200 -F'
 ```
 - `sh -c '<스크립트>' sh <경로>`: 첫 `sh`는 `$0` 자리 이름이고 경로가 `$1`이 된다.
 - `$!`는 방금 백그라운드로 띄운 프로세스 번호다.
+
+### 2) Windows 배치 파일로 로그 창 띄우기
+```bat
+@echo off
+rem logs.bat — Windows 10 이상 기본 ssh. 안쪽 큰따옴표 없이 $1 을 쓴다(경로에 공백이 없어야 함)
+ssh -o ServerAliveInterval=30 <계정>@<서버> "docker exec -i <컨테이너> sh -c 'tail -n 200 -F $1 & t=$!; cat >/dev/null; kill $t' sh /path/to/app.log"
+```
+
+### 3) 이미 남아 있는 프로세스 정리
+```bash
+docker exec <컨테이너> ps -ef                          # PID 확인 (busybox 이미지는 열 순서가 다르다)
+docker exec <컨테이너> pkill -f 'tail -n 200 -F'       # pkill 이 있는 이미지
+docker exec <컨테이너> kill <PID>                      # pkill 이 없으면 PID 로
+```
+
+### 4) 서버가 끊긴 연결을 빨리 정리하게 하기 (sshd 설정)
+```text
+# /etc/ssh/sshd_config — 60초마다 확인, 3번 응답이 없으면 세션 종료
+ClientAliveInterval 60
+ClientAliveCountMax 3
+```
+```bash
+sudo sshd -t && sudo systemctl reload sshd     # 문법 검사 후 반영 (Ubuntu 는 서비스 이름이 ssh)
+```
 
 ## 주의할 점
 - `-t`를 빼면 터미널이 아니므로 색 표시 같은 터미널 기능이 빠질 수 있다. 로그 보기에는 문제없다.

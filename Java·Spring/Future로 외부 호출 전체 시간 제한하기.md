@@ -1,6 +1,6 @@
 # Future로 외부 호출 전체 시간 제한하기
 
-> 분류: Java·Spring · 최근 갱신: 2026-10-06
+> 분류: Java·Spring · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 connect/read 타임아웃만으로는 호출 "전체 시간"이 제한되지 않으므로, 스레드풀에 작업을 맡기고 `Future.get(timeout)`으로 상한을 한 번 더 거는 패턴과 그 예외 처리 방법.
@@ -25,7 +25,24 @@ connect/read 타임아웃만으로는 호출 "전체 시간"이 제한되지 않
 - 다른 스레드에서 난 예외는 `ExecutionException`으로 한 겹 싸여 온다. 벗기지 않으면 호출부가 "인증 거부"와 "통신 오류"를 구분할 수 없다.
 - 변환을 한 곳에서 해 두면 호출부가 다룰 예외 종류가 두세 가지로 고정된다.
 
-## 예시
+## 핵심 코드
+### 1) 크기를 제한한 전용 스레드풀
+```java
+// 외부 장애 때 작업이 끝없이 쌓이지 않도록 스레드 수와 대기 큐를 제한한다
+private static final ExecutorService EXECUTOR = new ThreadPoolExecutor(
+        8, 8, 0L, TimeUnit.MILLISECONDS,
+        new ArrayBlockingQueue<Runnable>(50),      // 대기 큐 상한
+        new ThreadPoolExecutor.AbortPolicy());     // 가득 차면 submit에서 RejectedExecutionException
+
+private static final long TIMEOUT_MILLIS = 5000;  // 호출 전체 상한(화면 ajax 타임아웃보다 짧게)
+
+@PreDestroy
+public void shutdown() {
+    EXECUTOR.shutdownNow();                       // 애플리케이션 종료 시 스레드 정리
+}
+```
+
+### 2) 전체 시간 상한과 예외 변환
 ```java
 private TokenResponse requestToken(final Grant grant) throws IOException, AuthException {
     Future<TokenResponse> future = EXECUTOR.submit(() -> requestTokenBlocking(grant));
@@ -42,6 +59,35 @@ private TokenResponse requestToken(final Grant grant) throws IOException, AuthEx
         if (cause instanceof AuthException) throw (AuthException) cause;
         if (cause instanceof IOException) throw (IOException) cause;
         throw new IOException(cause);
+    }
+}
+```
+풀이 가득 찬 경우까지 같은 예외로 맞추려면 `submit`도 감싼다.
+```java
+Future<TokenResponse> future;
+try {
+    future = EXECUTOR.submit(() -> requestTokenBlocking(grant));
+} catch (RejectedExecutionException e) {
+    throw new IOException("busy", e);             // 풀·큐가 가득 참 = 외부 장애 의심
+}
+```
+
+### 3) 안쪽 호출에도 connect/read 타임아웃
+```java
+private TokenResponse requestTokenBlocking(Grant grant) throws IOException, AuthException {
+    HttpURLConnection conn = (HttpURLConnection) new URL(TOKEN_URL).openConnection();
+    conn.setConnectTimeout(2000);                 // cancel(true)로는 블로킹 I/O가 멈추지 않으므로 필수
+    conn.setReadTimeout(3000);
+    try {
+        int status = conn.getResponseCode();
+        if (status == HttpURLConnection.HTTP_BAD_REQUEST || status == HttpURLConnection.HTTP_UNAUTHORIZED) {
+            throw new AuthException("rejected: " + status);   // 인증 거부는 통신 오류와 구분
+        }
+        try (InputStream in = conn.getInputStream()) {
+            return parse(in);
+        }
+    } finally {
+        conn.disconnect();
     }
 }
 ```

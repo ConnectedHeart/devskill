@@ -1,6 +1,6 @@
 # ps STAT 값(Ss+)과 남아 있는 tail -F 프로세스
 
-> 분류: 기타 · 최근 갱신: 2026-10-19
+> 분류: 기타 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 `ps` 출력의 `Ss+`는 "잠자는 중(S) + 세션 리더(s) + 터미널 포그라운드(+)"다. 로그 경로가 명령줄에 들어 있는 `tail -F`가 서비스 이름 grep에 걸려 나오는 경우가 많고, SSH 접속이 끊기지 않으면 며칠씩 남는다.
@@ -23,11 +23,32 @@
 - `tail -F`는 파일이 교체돼도 다시 열어 계속 따라가며 스스로 끝나지 않는다. 접속한 쪽이 끊지 않으면 그대로 남는다.
 - `ps aux | grep <서비스명>`은 명령줄 문자열 전체를 찾으므로 로그 경로에 서비스명이 들어간 `tail`, `less`도 함께 걸린다. 실제 서비스 프로세스는 `pgrep -af java`처럼 실행 파일로 찾는 편이 정확하다.
 
-## 예시
+## 핵심 코드
+
+### 1) 프로세스 시작 시각·부모·접속 확인
 ```bash
 ps -o pid,ppid,lstart,tty,stat,cmd -p <PID>      # 시작 시각·부모 확인
 ps -ef | grep -E 'sshd.*pts/<번호>'               # 어느 SSH 접속인지
 kill <PID>                                        # 본인 것이 확실할 때만
+```
+
+### 2) 서비스 프로세스와 남은 tail을 구분해 찾기
+```bash
+pgrep -af java                                          # 실행 파일이 java 인 것만 (명령줄 함께 표시)
+ps -eo pid,ppid,user,etime,stat,tty,args | grep '[t]ail -F'   # [t]: grep 자신 제외, etime: 경과 시간
+```
+
+### 3) 남은 tail 정리 (소유자 확인 후)
+```bash
+ps -o pid,user,lstart,tty,args -p "$(pgrep -d, -f 'tail -F /path/app.log')"   # 정리 전 목록 확인
+pkill -u <계정> -f 'tail -F /path/app.log'               # 계정과 패턴을 좁혀서
+```
+
+### 4) 원격 tail이 접속과 함께 끝나게 하기
+```bash
+ssh -t <계정>@<서버> 'tail -F /path/app.log'              # -t: 창을 닫으면 SIGHUP 으로 tail 도 끝남
+ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -t <계정>@<서버> 'tail -F /path/app.log'   # 네트워크 끊김도 감지
+ssh <계정>@<서버> 'timeout 8h tail -F /path/app.log'      # 최대 8시간 뒤 스스로 종료(coreutils timeout)
 ```
 
 ## 주의할 점

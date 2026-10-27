@@ -1,6 +1,6 @@
 # PowerShell 기초 문법(Java 개발자용)
 
-> 분류: Windows·자동화 · 최근 갱신: 2026-10-08
+> 분류: Windows·자동화 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 PowerShell은 Windows에 기본 포함된 .NET 기반 셸 겸 스크립트 언어로, 변수는 `$이름`, 비교는 `-eq` 같은 단어 연산자, 파이프는 글자가 아니라 객체를 넘긴다.
@@ -18,7 +18,48 @@ PowerShell은 Windows에 기본 포함된 .NET 기반 셸 겸 스크립트 언�
 - **경로 명령**: `Split-Path -Parent`(상위 폴더), `Split-Path -Leaf`(마지막 이름), `Join-Path`(이어 붙이기), `Test-Path`(존재 확인). 글자만 다루는 명령이라 실제 파일이 있는지는 `Test-Path`로 따로 본다.
 - **예외**: `throw "메시지"`로 던지고 `try { } catch { $_.Exception.Message }`로 받는다.
 
-## 예시
+## 핵심 코드
+### 1) 변수, 문자열, 연산자, 컬렉션
+```powershell
+$name = 'build'; $count = 3
+"작업: $name, 건수: $count"            # 큰따옴표: 변수 치환
+'그대로 출력: $name'                     # 작은따옴표: 글자 그대로
+"식·속성은 감싼다: $($count + 1)`r`n줄바꿈은 백틱"
+
+if ($count -ge 1 -and $name -match '^bu') { 'ok' }
+'a,b,c' -split ','                       # 배열 a b c
+@('a','b') -join '|'                     # "a|b"
+'v1.2' -replace '\.', '_'                # 정규식 치환
+
+$list = @(1, 2, 3)                       # 배열
+$map  = @{ host = 'localhost'; port = 8080 }   # 해시테이블(Map)
+$map['port']; $map.host
+$text = @'
+여러 줄 문자열, $ 도 그대로
+'@                                       # 닫는 '@ 는 반드시 줄 맨 앞
+```
+
+### 2) 함수, 스코프, 예외
+```powershell
+$script:Total = 0                        # 스크립트 전체 공유(필드처럼)
+
+function Add-Total {
+    param([int]$Value, [switch]$Show)    # [switch] = 값 없는 옵션
+    $script:Total += $Value              # $script: 를 빼면 함수 안 지역 변수가 된다
+    if ($Show) { "added $Value" }
+}
+
+Add-Total -Value 5 -Show                 # 괄호·쉼표 없이 호출
+Add-Total 7
+
+try {
+    if ($script:Total -gt 10) { throw "합계 초과: $script:Total" }
+} catch {
+    Write-Host "오류: $($_.Exception.Message)"
+}
+```
+
+### 3) 설정 파일 읽기와 파이프
 ```powershell
 # 스크립트가 있는 폴더 기준으로 설정 파일 찾기 (폴더를 옮겨도 동작)
 $script:BaseDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -35,6 +76,17 @@ foreach ($server in @($config.servers)) {
 
 # 최신 파일 하나 고르기 (객체가 넘어가므로 속성으로 정렬 가능)
 Get-ChildItem -Filter '*.war' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
+# 걸러서 속성만 뽑기 (stream().filter().map() 과 같은 구조)
+Get-ChildItem -File | Where-Object { $_.Length -gt 1MB } | ForEach-Object { $_.Name }
+```
+
+### 4) 더블클릭 실행용 bat
+```bat
+@echo off
+rem 같은 폴더의 run.ps1 실행. 끝난 뒤 창을 유지하려면 pause
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0run.ps1"
+pause
 ```
 
 | Java | PowerShell |

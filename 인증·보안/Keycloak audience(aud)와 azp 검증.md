@@ -1,6 +1,6 @@
 # Keycloak audience(aud)와 azp 검증
 
-> 분류: 인증·보안 · 최근 갱신: 2026-09-30
+> 분류: 인증·보안 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 `aud`는 "이 토큰이 누구를 위해 발급됐는가", `azp`는 "어느 client가 발급받았는가"이고, Keycloak은 값을 넣기만 하며 검증은 토큰을 받는 API 서버가 한다.
@@ -29,12 +29,40 @@ JWKS로 서명, issuer, 만료만 확인하면 같은 realm의 **다른 client�
 
 매퍼 추가는 `aud` 목록에 값이 하나 늘어날 뿐이라 기존 사용처에 대체로 영향이 없다. API용 client를 만들기만 해서는 토큰이 바뀌지 않는다.
 
-## 예시
+## 핵심 코드
+### 1) 새로 발급된 토큰에 aud가 들어왔는지 확인
+```bash
+# 페이로드의 aud·azp만 본다 (토큰 원문은 기록에 남기지 않는다)
+echo "$ACCESS_TOKEN" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | jq '{aud, azp, iss}'
+```
+
+### 2) API 서버: 서명·issuer·만료·audience 검증 (nimbus-jose-jwt)
 ```java
 // 설정값이 있을 때만 audience를 검증
 Set<String> accepted = audiences.isEmpty() ? null : audiences;
+JWTClaimsSet exactMatchClaims = new JWTClaimsSet.Builder()
+    .issuer("<서버 주소>/realms/<realm>")          // 글자 그대로 일치해야 함
+    .build();
+Set<String> requiredClaims = new HashSet<>(Arrays.asList("sub", "exp", "azp"));
 JWTClaimsSetVerifier<SecurityContext> verifier =
     new DefaultJWTClaimsVerifier<>(accepted, exactMatchClaims, requiredClaims, null);
+
+DefaultJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
+JWKSource<SecurityContext> jwks = new RemoteJWKSet<>(
+    new URL("<서버 주소>/realms/<realm>/protocol/openid-connect/certs"));
+processor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, jwks));
+processor.setJWTClaimsSetVerifier(verifier);
+
+JWTClaimsSet claims = processor.process(token, null);   // 실패 시 BadJOSEException
+```
+
+### 3) 허용 client 목록은 azp로 확인
+```java
+String azp = claims.getStringClaim("azp");
+if (azp == null || !allowedClients.contains(azp)) {
+    log.info("token rejected: azp not allowed azp={}", azp);   // 토큰 값은 남기지 않는다
+    throw new SecurityException("azp not allowed");
+}
 ```
 
 ## 주의할 점

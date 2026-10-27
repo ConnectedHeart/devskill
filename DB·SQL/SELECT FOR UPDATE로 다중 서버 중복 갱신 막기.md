@@ -1,6 +1,6 @@
 # SELECT FOR UPDATE로 다중 서버 중복 갱신 막기
 
-> 분류: DB·SQL · 최근 갱신: 2026-10-07
+> 분류: DB·SQL · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 서버가 여러 대일 때 "한 번만 일어나야 하는 갱신"은 JVM 잠금으로 막을 수 없으므로, 대상 행을 `SELECT ... FOR UPDATE`로 잠그고 잠근 뒤 최신 값을 다시 판정한다.
@@ -22,21 +22,57 @@
 | 기다리는 동안 | 커넥션을 잡지 않음 | 요청마다 커넥션 하나를 잡고 대기 |
 | 없으면 | 결과는 맞지만 커넥션을 더 씀 | 서버 간 중복 갱신 발생 |
 
-## 예시
+## 핵심 코드
+### 1) 잠금 조회와 갱신 SQL
 ```sql
 -- 트랜잭션 안에서
 SELECT token_key, access_token, refresh_token, access_expire_time
-  FROM app_token
+  FROM user_token
  WHERE token_key = ?
    FOR UPDATE;
 
 -- (필요할 때만) 외부 호출로 갱신한 뒤
-UPDATE app_token
+UPDATE user_token
    SET access_token = ?, refresh_token = ?, access_expire_time = ?
  WHERE token_key = ?;
 COMMIT;
 ```
 MySQL/MariaDB, Oracle, Tibero에서 구문이 같다.
+
+### 2) 잠금 대기 시간 상한
+```sql
+-- MySQL/MariaDB: 이 세션의 행 잠금 대기 상한(초)
+SET SESSION innodb_lock_wait_timeout = 10;
+
+-- Oracle: 문장 단위로 대기 상한(초)
+SELECT access_token, refresh_token, access_expire_time
+  FROM user_token
+ WHERE token_key = ?
+   FOR UPDATE WAIT 10;
+```
+
+### 3) JDBC: 자동 커밋 끄기 → 잠금 → 다시 판정 → 저장 → 커밋
+```java
+public Token refreshIfNeeded(Connection conn, String key) throws SQLException, IOException {
+    conn.setAutoCommit(false);                       // 끄지 않으면 SELECT 직후 잠금이 풀린다
+    try {
+        Token t = selectForUpdate(conn, key);        // 다른 서버가 갱신 중이면 여기서 대기
+        long now = System.currentTimeMillis();
+        if (t.getAccessExpireTime() <= now + 60_000L) {   // 잠근 뒤 최신 값으로 다시 판정
+            t = callRefresh(t.getRefreshToken());    // 외부 호출(짧은 타임아웃)
+            update(conn, key, t);
+        }
+        conn.commit();                               // 커밋과 함께 잠금 해제
+        return t;
+    } catch (SQLException | IOException | RuntimeException e) {
+        conn.rollback();
+        throw e;
+    } finally {
+        conn.setAutoCommit(true);
+    }
+}
+```
+Spring에서는 이 메서드를 `@Transactional(propagation = Propagation.REQUIRES_NEW)` 별도 빈으로 두고, 바깥에서 `synchronized`로 같은 서버 요청을 먼저 줄 세운다.
 
 ## 주의할 점
 - 잠금을 쥔 동안 외부 호출을 하면 그 시간만큼 커넥션과 행 잠금이 유지된다. 외부 호출 타임아웃을 짧게 둔다.

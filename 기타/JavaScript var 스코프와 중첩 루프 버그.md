@@ -1,6 +1,6 @@
 # JavaScript var 스코프와 중첩 루프 버그
 
-> 분류: 기타 · 최근 갱신: 2026-10-06
+> 분류: 기타 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 `var`는 블록이 아니라 함수 스코프라서, 한 함수 안의 바깥 루프와 안쪽 루프가 같은 이름(`i`)을 쓰면 하나의 변수를 공유해 바깥 루프의 위치가 망가진다.
@@ -14,7 +14,9 @@
   - 안쪽 루프가 조건부로만 실행되면(예: 항목이 실제로 추가됐을 때만) 재현 조건이 더 좁아진다.
 - 고치는 방법은 안쪽 변수 이름을 바꾸거나 `let`을 쓰는 것이다. `let`은 블록 스코프라 루프마다 별도 변수다.
 
-## 예시
+## 핵심 코드
+
+### 1) 버그 재현과 최소 수정
 ```js
 function addAll(items) {
   for (var i = 0; i < items.length; i++) {
@@ -31,6 +33,39 @@ function addAll(items) {
 
 // 수정: 다른 이름을 쓰거나 let 사용
 for (var k = 0; k < inputs.length; k++) { inputs[k].checked = true; }
+```
+
+### 2) let으로 고친 전체 함수
+```javascript
+function addAll(items) {
+  for (let i = 0; i < items.length; i++) {          // let: 루프마다 별도 변수
+    if (items[i].blocked) { alert('선택할 수 없습니다'); continue; }
+    if (exists(items[i])) continue;
+    const row = append(items[i]);
+    const inputs = row.getElementsByTagName('input');
+    for (let j = 0; j < inputs.length; j++) {       // 이름도 다르게 두면 읽기 쉽다
+      inputs[j].checked = true;
+    }
+  }
+}
+```
+
+### 3) ESLint로 재선언 막기 (.eslintrc.json)
+```json
+{
+  "rules": {
+    "no-redeclare": "error",
+    "block-scoped-var": "error",
+    "no-var": "warn"
+  }
+}
+```
+
+### 4) 같은 패턴이 복사된 파일 찾기
+```bash
+# 한 파일에 "for (var i =" 가 2번 이상 나오는 파일만 출력 → 중첩 여부를 눈으로 확인
+grep -rcE 'for *\( *var +i *=' --include='*.js' --include='*.jsp' --include='*.html' . \
+  | grep -vE ':(0|1)$'
 ```
 
 ## 주의할 점

@@ -1,6 +1,6 @@
 # 훅(hook) 작성 요령
 
-> 분류: Claude Code · 최근 갱신: 2026-10-22
+> 분류: Claude Code · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 훅은 질문·답변·세션 시작마다 실행되므로 "할 일이 없을 때 얼마나 빨리 끝나는가"가 가장 중요하고, 훅의 출력은 Claude의 컨텍스트로 들어간다.
@@ -38,7 +38,8 @@
 - JSON 안에 긴 bash 한 줄을 직접 넣으면 따옴표와 역슬래시 이스케이프 때문에 다루기 어렵다. 스크립트 파일로 빼고 설정에는 실행 명령만 둔다.
 - `timeout`을 지정해 훅이 멈춰도 세션이 무한정 기다리지 않게 한다.
 
-## 예시
+## 핵심 코드
+### 1) 설정: 시작·질문마다 도는 훅 (~/.claude/settings.json)
 ```json
 {
   "hooks": {
@@ -63,6 +64,61 @@
     ]
   }
 }
+```
+
+### 2) 빨리 끝나는 훅 스크립트 (pre.sh)
+```bash
+#!/usr/bin/env bash
+# 훅 입력 JSON 은 표준 입력으로 들어온다. 할 일이 없으면 아무것도 출력하지 않고 끝낸다
+input=$(cat)
+flag=~/.claude/mycheck/checked-$(date +%F)
+[ -f "$flag" ] && exit 0                               # 오늘 이미 확인함
+[ -d "<조건 폴더>" ] || exit 0                          # 해당 환경이 아니면 즉시 종료
+# 필요할 때만 PowerShell 을 띄운다
+result=$(powershell -NoProfile -ExecutionPolicy Bypass -File ~/.claude/mycheck/check.ps1)
+[ -z "$result" ] && { touch "$flag"; exit 0; }
+# 출력은 Claude 컨텍스트로 들어간다. 영어로 쓰고 답변 언어를 지정한다
+echo "Daily check found: $result. Ask the user about it in your first reply, in Korean."
+touch "$flag"
+```
+
+### 3) 서브에이전트가 도는 동안 Stop 정리를 미루는 훅
+```json
+{
+  "hooks": {
+    "SubagentStart": [ { "hooks": [ { "type": "command", "command": "bash ~/.claude/mycheck/sub.sh start", "timeout": 10 } ] } ],
+    "SubagentStop":  [ { "hooks": [ { "type": "command", "command": "bash ~/.claude/mycheck/sub.sh stop",  "timeout": 10 } ] } ],
+    "Stop":          [ { "hooks": [ { "type": "command", "command": "bash ~/.claude/mycheck/on-stop.sh", "timeout": 30 } ] } ]
+  }
+}
+```
+```bash
+#!/usr/bin/env bash
+# ~/.claude/mycheck/sub.sh start|stop — 입력 JSON 의 agent_id 로 표시 파일을 만들고 지운다
+dir=~/.claude/mycheck/active; mkdir -p "$dir"
+id=$(cat | grep -oE '"agent_id"[[:space:]]*:[[:space:]]*"[^"]+"' | sed -E 's/.*"([^"]+)"$/\1/')
+[ -z "$id" ] && exit 0
+case "$1" in
+  start) touch "$dir/$id" ;;
+  stop)  rm -f "$dir/$id" ;;        # 표시만 지우고 정리는 하지 않는다
+esac
+```
+```bash
+#!/usr/bin/env bash
+# ~/.claude/mycheck/on-stop.sh — 60분 안의 표시가 있으면 정리를 미룬다
+dir=~/.claude/mycheck/active
+find "$dir" -type f -mmin +60 -delete 2>/dev/null     # 비정상 종료로 남은 오래된 표시 무시
+[ -n "$(ls -A "$dir" 2>/dev/null)" ] && exit 0         # 서브에이전트가 아직 돌고 있음
+bash ~/.claude/mycheck/cleanup.sh                      # 실제 정리 작업
+```
+
+### 4) 조건별로 직접 실행해 출력과 시간 확인
+```bash
+rm -f ~/.claude/mycheck/checked-$(date +%F)
+time (echo '{"prompt":"hi"}' | bash ~/.claude/mycheck/pre.sh)    # 첫 실행: 지시문이 나오는지
+time (echo '{"prompt":"hi"}' | bash ~/.claude/mycheck/pre.sh)    # 두 번째: 출력 없이 바로 끝나는지
+echo '{"agent_id":"test1"}' | bash ~/.claude/mycheck/sub.sh start && ls ~/.claude/mycheck/active
+echo '{"agent_id":"test1"}' | bash ~/.claude/mycheck/sub.sh stop  && ls ~/.claude/mycheck/active
 ```
 
 ## 주의할 점

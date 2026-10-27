@@ -1,6 +1,6 @@
 # Bearer 토큰과 세션 ID를 API 인증에 쓸 때의 차이
 
-> 분류: 인증·보안 · 최근 갱신: 2026-10-07
+> 분류: 인증·보안 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 `Authorization: Bearer`는 "이 값을 가진 쪽을 주인으로 인정한다"는 방식이라 무엇을 실어 보내느냐가 중요하며, 웹 로그인 세션 ID를 그대로 다른 서버에 넘기면 유출 시 피해 범위가 수명이 짧은 access token보다 훨씬 넓다.
@@ -29,7 +29,68 @@
 - **더 안전한 대안(전용 불투명 토큰)**: 서버가 임의 문자열을 만들어 세션과 짝지어 저장하고, 외부에는 그 문자열만 넘긴다. API는 그 문자열로 짝지어진 세션이 살아 있는지 확인한다. 유출돼도 해당 API만 호출할 수 있고 화면 로그인에는 쓸 수 없으며, 로그아웃하면 함께 무효가 된다.
 - **"주인이 누구인가"와 "지금 유효한가"는 다른 확인이다**: 쿠키를 복호화해 사용자 정보를 돌려주는 유틸리티는 보통 앞의 것만 한다. API 인증에 재사용하려면 만료 검사, 허용 형식 제한, 권한 변경 여부 확인을 따로 더해야 한다.
 
-## 예시
+## 핵심 코드
+### 1) 서버: Authorization 헤더에서 Bearer 토큰 꺼내기
+```java
+String h = req.getHeader("Authorization");
+if (h == null || !h.regionMatches(true, 0, "Bearer ", 0, 7)) {   // 방식 이름은 대소문자 무시
+    resp.setHeader("WWW-Authenticate", "Bearer");
+    resp.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+    return;
+}
+String token = h.substring(7).trim();
+```
+
+### 2) 전용 불투명 토큰 발급 — 세션 ID 대신 넘길 값
+```java
+byte[] b = new byte[32];
+new SecureRandom().nextBytes(b);
+String apiToken = Base64.getUrlEncoder().withoutPadding().encodeToString(b);
+// 원문 대신 해시를 저장 (Apache Commons Codec)
+jdbc.update("INSERT INTO api_token (token_hash, session_id, expires_at) VALUES (?, ?, ?)",
+    DigestUtils.sha256Hex(apiToken), session.getId(),
+    new Timestamp(System.currentTimeMillis() + 10 * 60 * 1000L));
+return apiToken;                                   // 외부에는 이 값만 넘긴다
+```
+
+### 3) 전용 토큰 검증 — 짝지어진 세션이 살아 있는지
+```java
+Timestamp now = new Timestamp(System.currentTimeMillis());
+List<String> sids = jdbc.queryForList(
+    "SELECT t.session_id FROM api_token t JOIN app_session s ON s.session_id = t.session_id"
+  + " WHERE t.token_hash = ? AND t.expires_at > ? AND s.expires_at > ?",
+    String.class, DigestUtils.sha256Hex(token), now, now);
+if (sids.isEmpty()) { resp.sendError(401); return; }   // 로그아웃하면 세션 행이 없어 같이 무효
+```
+
+### 4) refresh 실패 처리: invalid_grant만 저장 토큰 삭제
+```java
+try {
+    Map<?, ?> tok = rest.postForObject(tokenUrl, refreshForm, Map.class);
+} catch (HttpClientErrorException e) {
+    if (e.getStatusCode().value() == 400 && e.getResponseBodyAsString().contains("\"invalid_grant\"")) {
+        tokenStore.delete(userId);                 // 다시 해도 실패 → 재로그인 유도
+    } else {
+        log.warn("refresh failed status={}", e.getStatusCode().value());   // invalid_client 등: 보관
+    }
+} catch (ResourceAccessException e) {
+    log.warn("refresh failed: {}", e.getClass().getSimpleName());       // 통신 오류·타임아웃: 보관
+}
+```
+
+### 5) 인증 방식 옵션은 enum으로 직접 비교
+```java
+enum AuthMode { BEARER, SESSION }
+
+// 모르는 값(오타 포함)은 IllegalArgumentException → 기동 시점에 드러난다
+AuthMode mode = AuthMode.valueOf(configValue.trim().toUpperCase(Locale.ROOT));
+switch (mode) {
+    case BEARER:  authenticateBearer(req);  break;
+    case SESSION: authenticateSession(req); break;
+}
+```
+
+### 6) curl로 확인
 ```bash
 # 인증만 따로 시험: 중간 서버를 거치지 않고 API를 직접 호출
 curl -i -H "Authorization: Bearer <토큰>" https://example.com/api/me

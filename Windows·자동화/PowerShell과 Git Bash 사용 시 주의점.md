@@ -1,6 +1,6 @@
 # PowerShell과 Git Bash 사용 시 주의점
 
-> 분류: Windows·자동화 · 최근 갱신: 2026-10-21
+> 분류: Windows·자동화 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 Windows에서 스크립트를 짤 때 자주 걸리는 것들 — `curl` 별칭, 줄 끝(CRLF) 변환, 스크립트 파일 인코딩, 결과가 하나일 때의 배열 처리.
@@ -40,13 +40,14 @@ Windows에서 스크립트를 짤 때 자주 걸리는 것들 — `curl` 별칭,
 - 스크립트 안에서 만든 짧은 함수 이름(`H`, `R`, `gc` 등)이 기본 별칭(`h`=Get-History, `r`=Invoke-History, `gc`=Get-Content)과 겹치면 예상과 다른 명령이 불린다. 함수 이름은 동사-명사 형태로 길게 짓는다.
 
 ### properties의 \uXXXX 이스케이프가 깨지는 경우
-- Java `.properties`의 한글은 `가` 같은 이스케이프로 저장되는 경우가 많다. GNU sed의 치환 문자열에서 `\u`는 "다음 글자를 대문자로"라는 뜻이라, 이스케이프를 그대로 넣으려 하면 값이 깨진다. 일부 편집 도구는 이스케이프를 실제 한글로 바꿔 저장하기도 한다.
+- Java `.properties`의 한글은 `가`("가") 같은 이스케이프로 저장되는 경우가 많다. GNU sed의 치환 문자열에서 `\u`는 "다음 글자를 대문자로"라는 뜻이라, 이스케이프를 그대로 넣으려 하면 값이 깨진다. 일부 편집 도구는 이스케이프를 실제 한글로 바꿔 저장하기도 한다.
 - 고친 뒤 파일에 비ASCII 바이트가 0인지 확인하고, 이스케이프 형태로 다시 넣는다.
 
 ### 폴더 이동이 막힐 때
 - 파일 잠금이 하나도 없는데 폴더 이동이 거부되면, IDE(IntelliJ 등)가 그 폴더 안 파일을 연 뒤 폴더 자체를 감시하고 있는 경우가 있다. 탐색기 창이 그 폴더를 열고 있어도 막힌다. 프로그램을 닫기 어렵다면 새 위치로 복사하고 이름·크기를 대조한 뒤 원본 내용을 지운다(빈 폴더는 나중에 지운다).
 
-## 예시
+## 핵심 코드
+### 1) 실행 정책과 환경 변수
 ```powershell
 # 이 창에서만 실행 정책 우회
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
@@ -54,25 +55,76 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 # 사용자 환경 변수 값을 명시적으로 읽기
 $id = [Environment]::GetEnvironmentVariable("MY_ID", "User")
 
+# 이 창에서 넣은 값 확인과 제거 (다음 실행 전에)
+Get-ChildItem Env:MY_*
+Remove-Item Env:MY_ID -ErrorAction SilentlyContinue
+```
+
+### 2) 진짜 curl과 비밀값 입력
+```powershell
 # 진짜 curl
 curl.exe -s -o NUL -w "%{http_code}" https://example.com/api
+Get-Alias curl                          # 5.1에서는 Invoke-WebRequest 로 나온다
 
 # 비밀값 입력 후 호출
 $sec = Read-Host -AsSecureString "password"
 $plain = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec))
 Invoke-RestMethod -Method Post -Uri https://example.com/token -Body @{ password = $plain }
+Remove-Variable plain                   # 다 쓴 평문은 바로 지운다
+```
 
+### 3) 인코딩과 줄 끝을 지키며 파일 고치기
+```powershell
 # 파일을 UTF-8 with BOM 으로 다시 저장
 $text = [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8)
 [IO.File]::WriteAllText($path, $text, (New-Object Text.UTF8Encoding($true)))
 
-# 1건이어도 배열로
-$last = @($items | Sort-Object)[-1]
+# BOM 확인 (239 187 191 이면 BOM 있음)
+[IO.File]::ReadAllBytes($path)[0..2]
 
 # CRLF 를 유지한 문자열 치환
 $t = [IO.File]::ReadAllText($path)
 [IO.File]::WriteAllText($path, $t.Replace('old', 'new'))
+
+# 다른 도구가 읽을 파일은 인코딩 명시
+Set-Content -Path $out -Value $lines -Encoding utf8
+```
+
+### 4) 배열 처리와 네이티브 명령 결과 판단
+```powershell
+# 1건이어도 배열로
+$last = @($items | Sort-Object)[-1]
+
+# 종료 코드로 판단 (5.1에는 && 가 없다)
+git fetch origin
+if ($LASTEXITCODE -ne 0) { throw "git fetch 실패: $LASTEXITCODE" }
+
+# stderr 를 따로 파일로 받기 (2>&1 대신)
+$p = Start-Process git -ArgumentList 'status','--short' -NoNewWindow -Wait -PassThru `
+       -RedirectStandardOutput "$env:TEMP\out.txt" -RedirectStandardError "$env:TEMP\err.txt"
+$p.ExitCode
+```
+
+### 5) Git Bash에서 줄 끝 확인과 되돌리기
+```bash
+file <경로>                         # "with CRLF line terminators" 여부
+grep -c $'\r$' <경로>               # CR 로 끝나는 줄 수
+sed -i 's/old/new/' <경로>          # 이렇게 고치면 CRLF 가 LF 로 바뀔 수 있다
+unix2dos <경로>                     # LF 를 다시 CRLF 로 (Git for Windows 포함)
+git diff --stat -- <경로>           # 통째로 바뀐 것으로 잡히는지 확인
+```
+
+### 6) properties 파일의 비ASCII 바이트 확인
+```bash
+grep -nP '[^\x00-\x7F]' <파일>.properties     # 출력이 없어야 이스케이프 형태가 유지된 것
+native2ascii -encoding UTF-8 in.txt out.properties   # JDK 8 이하에 포함. 한글을 \uXXXX 로
+```
+
+### 7) 함수 이름이 기본 별칭과 겹치는지 확인
+```powershell
+Get-Alias h, r, gc                  # 이미 쓰이는 짧은 이름
+Get-Command Get-BuildLog -ErrorAction SilentlyContinue   # 새 함수 이름이 비어 있는지
 ```
 
 ## 주의할 점

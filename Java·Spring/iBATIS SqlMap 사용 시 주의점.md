@@ -1,6 +1,6 @@
 # iBATIS SqlMap 사용 시 주의점
 
-> 분류: Java·Spring · 최근 갱신: 2026-10-15
+> 분류: Java·Spring · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 iBATIS 2(SqlMap)에서 `resultClass`가 없는 `<select>`는 항상 null을 돌려주고, Map 파라미터의 키는 대소문자를 구분하며, CDATA 안의 주석은 SQL에 그대로 들어간다.
@@ -11,7 +11,7 @@ iBATIS 2(SqlMap)에서 `resultClass`가 없는 `<select>`는 항상 null을 돌�
 - 오류가 나지 않아서, 받은 값을 화면에서 쓰지 않는 동안은 아무도 모른다. 단일 값 조회에는 `resultClass="String"`(또는 `int`, `java.lang.Integer`)을 꼭 적는다.
 
 ### Map 파라미터 키는 대소문자를 구분
-- SQL이 `#DOCID#`를 쓰는데 Java가 `map.put("docID", ...)`로 넣으면 값이 null로 바인딩된다. UPDATE라면 0건 갱신, SELECT라면 0건 조회이고 역시 오류는 없다.
+- SQL이 `#ITEMID#`를 쓰는데 Java가 `map.put("itemID", ...)`로 넣으면 값이 null로 바인딩된다. UPDATE라면 0건 갱신, SELECT라면 0건 조회이고 역시 오류는 없다.
 - 키 이름은 SQL 쪽을 기준으로 맞추거나 상수로 공유한다. 한쪽만 고치면(예: 분기 조건만 고쳐서 실제로 실행되게 만들면) 이번에는 0건 갱신이 조용히 실행된다. 두 문제가 겹쳐 있을 수 있다.
 
 ### CDATA 안에 쓴 주석은 SQL 문자열이 된다
@@ -24,26 +24,73 @@ iBATIS 2(SqlMap)에서 `resultClass`가 없는 `<select>`는 항상 null을 돌�
 ### IN 절에 긴 목록 넘기기
 - `#list[]#` 로 IN 절을 만들 때 Oracle은 한 IN 절에 1000개까지만 허용한다(`ORA-01795`). 목록을 500개 정도로 잘라 여러 번 실행한다.
 
-## 예시
+## 핵심 코드
+### 1) 단일 값 조회의 `resultClass`, 파라미터 유무에 따른 기본값
 ```xml
-<!-- 발송 이력 날짜는 담긴 문서의 기준일로 기록 -->   <!-- 주석은 태그 바깥에 -->
+<!-- 설명 주석은 태그 바깥에 -->
 <select id="getFlag" parameterClass="Map" resultClass="String">
-    SELECT flag FROM form_info WHERE form_id = #formId#
+    SELECT flag FROM config_item WHERE item_key = #itemKey#
 </select>
 
-<insert id="insertAttach" parameterClass="Map">
-    INSERT INTO attach_open (doc_id, sn, open_flag)
-    VALUES (#docId#, #sn#,
-        <isNotEmpty property="openFlag">#openFlag#</isNotEmpty>
-        <isEmpty property="openFlag">'Y'</isEmpty>)
+<insert id="insertShare" parameterClass="Map">
+    INSERT INTO file_share (item_id, seq, shared_yn)
+    VALUES (#itemId#, #seq#,
+        <isNotEmpty property="sharedYn">#sharedYn#</isNotEmpty>
+        <isEmpty property="sharedYn">'Y'</isEmpty>)
 </insert>
 ```
 
+### 2) CDATA 안에서는 SQL 주석만
+```xml
+<!-- 설명은 여기(태그 바깥)에 XML 주석으로 -->
+<select id="getStatus" parameterClass="java.util.Map" resultClass="java.lang.String">
+<![CDATA[
+    /* CDATA 안에는 SQL 주석만 쓴다 */
+    SELECT status FROM orders WHERE order_id = #orderId# AND amount < #limit#
+]]>
+</select>
+```
+
+### 3) Map 키를 상수로 공유하고 0건을 로그로 남기기
+```java
+private static final String KEY_ORDER_ID = "orderId";   // SQL의 #orderId#와 글자 단위로 같게
+
+Map<String, Object> param = new HashMap<>();
+param.put(KEY_ORDER_ID, orderId);
+String status = (String) sqlMapClient.queryForObject("getStatus", param);
+int updated = sqlMapClient.update("updateStatus", param);
+if (updated == 0) {
+    log.warn("0 rows updated: {}", param);   // 키 이름 불일치·조건 불일치 의심
+}
+```
+
+### 4) SET 절 조립과 IN 절 목록
+```xml
+<update id="updateStatus" parameterClass="java.util.Map">
+    UPDATE orders
+    <dynamic prepend="SET">
+        <isEqual property="mode" compareValue="1" prepend=",">status = 'A'</isEqual>
+        <isEqual property="mode" compareValue="2" prepend=",">status = 'B'</isEqual>
+    </dynamic>
+    WHERE order_id = #orderId#
+</update>
+
+<update id="markSent" parameterClass="java.util.Map">
+    UPDATE orders SET send_flag = 'Y'
+     WHERE order_id IN
+    <iterate property="idList" open="(" close=")" conjunction=",">
+        #idList[]#
+    </iterate>
+</update>
+```
+`mode`가 1·2가 아니면 `SET`이 비어 문법 오류이므로 호출 전에 값 범위를 확인한다.
+
+### 5) IN 절 목록을 잘라 여러 번 실행
 ```java
 // IN 절 분할
 for (int i = 0; i < ids.size(); i += 500) {
-    map.put("docIdList", ids.subList(i, Math.min(i + 500, ids.size())));
-    dao.update("setSendFlagY", map);
+    map.put("idList", ids.subList(i, Math.min(i + 500, ids.size())));
+    dao.update("markSent", map);
 }
 ```
 

@@ -1,6 +1,6 @@
 # Remote Control로 휴대폰에서 이어 쓰기
 
-> 분류: Claude Code · 최근 갱신: 2026-10-16
+> 분류: Claude Code · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 Remote Control은 PC에서 돌고 있는 Claude Code 세션을 휴대폰 앱이나 웹에서 이어 쓰는 기능으로, 실행과 파일 접근은 PC에서 하고 대화만 동기화된다.
@@ -28,6 +28,44 @@ Remote Control은 PC에서 돌고 있는 Claude Code 세션을 휴대폰 앱이�
 - 권한 확인 창도 휴대폰에 뜬다. 일정 시간 응답하지 않으면 거절로 처리된다.
 - 일부 명령(`/plugin`, `/resume` 등)은 PC에서만 된다.
 - 휴대폰에서 **새 세션을 시작**하려면 "휴대폰과 claude.ai에서 이 컴퓨터를 사용" 설정이 추가로 필요하다. 이미 열려 있는 세션을 이어 쓰는 데는 필요 없다.
+
+## 핵심 코드
+### 1) 켜기
+```bash
+# 새 세션을 Remote Control 로 시작 (줄여서 --rc)
+claude --remote-control "<세션 이름>"
+
+# 서버 모드: 대기하면서 휴대폰에서 연결 (스페이스바로 QR 코드)
+claude remote-control
+```
+이미 열린 세션 안에서는 입력창에 `/remote-control`(또는 `/rc`)을 친다.
+
+### 2) 항상 켜기 (사용자 설정 ~/.claude/settings.json)
+```json
+{
+  "remoteControlAtStartup": true
+}
+```
+저장소의 프로젝트·로컬 설정(`.claude/settings.json`, `.claude/settings.local.json`)에 넣으면 무시된다. 사용자 설정에 둔다.
+
+### 3) PC가 절전에 들어가지 않게 (전원 연결 시)
+```powershell
+powercfg /change standby-timeout-ac 0
+powercfg /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION 0   # 덮개를 닫아도 동작 안 함
+powercfg /setactive SCHEME_CURRENT
+```
+
+### 4) 망을 잠깐 바꾸는 작업은 한 명령으로 묶기
+```powershell
+# C:\Tools\run-inner.ps1 — 전환·실행·복귀를 PC 안에서 끝까지 수행
+param([Parameter(Mandatory)][string]$Script)
+try {
+    & 'C:\Tools\switch-network.ps1' -To inner      # 망 전환 (직접 만든 스크립트)
+    & $Script
+} finally {
+    & 'C:\Tools\switch-network.ps1' -To outer      # 실패해도 반드시 복귀
+}
+```
 
 ## 주의할 점
 - PC가 절전에 들어가면 끊긴다. 화면 잠금과 화면 꺼짐은 괜찮다. 전원 설정은 [예약 재시작과 전원 설정](../Windows·자동화/예약 재시작과 전원 설정.md) 참고.

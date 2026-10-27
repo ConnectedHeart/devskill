@@ -1,6 +1,6 @@
 # SSH 공개키 인증과 비대화형 실행 옵션
 
-> 분류: 네트워크 · 최근 갱신: 2026-10-08
+> 분류: 네트워크 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 공개키를 서버에 한 번 등록하면 비밀번호 없이 접속할 수 있고, 스크립트에서 ssh를 쓸 때는 `-o` 옵션으로 "사람에게 묻는 상황"을 모두 없애야 멈추지 않는다.
@@ -24,7 +24,8 @@
   - `Connection refused`: 서버에는 닿았지만 그 포트에서 받아 주는 프로그램이 없음(포트 오류 등).
   - `Permission denied (publickey)`: 닿았지만 키 인증이 안 됨.
 
-## 예시
+## 핵심 코드
+### 1) 키 만들기·등록·확인
 ```bash
 # 키 만들기 (없을 때)
 ssh-keygen -t ed25519
@@ -40,6 +41,46 @@ ssh -o BatchMode=yes user@example.com hostname
 
 # 스크립트에서 쓰는 형태
 ssh -p 22 -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o BatchMode=yes user@example.com "명령"
+```
+
+### 2) 등록 - Windows PowerShell
+```powershell
+Get-Content "$env:USERPROFILE\.ssh\id_ed25519.pub" | ssh user@example.com "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+```
+
+### 3) 스크립트: 접속 실패(255)와 원격 명령 실패 구분
+```bash
+ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 \
+    user@example.com "/opt/app/bin/check.sh"     # 원격 경로는 전체 경로로
+rc=$?
+if [ "$rc" -eq 255 ]; then
+  echo "접속 실패 (네트워크·키 인증)"; exit 2
+elif [ "$rc" -ne 0 ]; then
+  echo "원격 명령 실패: $rc"; exit 1
+fi
+```
+```powershell
+ssh -o BatchMode=yes -o ConnectTimeout=10 user@example.com "/opt/app/bin/check.sh"
+if ($LASTEXITCODE -eq 255) { "접속 실패" } elseif ($LASTEXITCODE -ne 0) { "원격 명령 실패: $LASTEXITCODE" }
+```
+
+### 4) 같은 옵션을 ~/.ssh/config에 고정
+```ssh-config
+Host myserver
+    HostName example.com
+    User user
+    Port 22
+    IdentityFile ~/.ssh/id_ed25519
+    BatchMode yes
+    StrictHostKeyChecking accept-new
+    ConnectTimeout 10
+```
+
+### 5) 암호 걸린 키를 agent에 올리기, 인증 과정 보기
+```bash
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+ssh -v -o BatchMode=yes user@example.com hostname   # 어떤 키를 시도했고 왜 거부됐는지 출력
 ```
 
 ## 주의할 점

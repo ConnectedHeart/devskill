@@ -1,6 +1,6 @@
 # WAF 웹 애플리케이션 방화벽과 오탐 대응
 
-> 분류: 네트워크 · 최근 갱신: 2026-10-15
+> 분류: 네트워크 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 WAF는 HTTP 요청 내용(L7)을 보고 웹 공격 패턴을 막는 장비·모듈이며, 정상 입력을 공격으로 오탐해 403을 내는 경우가 많아 "저장이 안 된다"는 문의에서 서버 로그에 요청이 없으면 먼저 의심한다.
@@ -19,12 +19,45 @@ WAF는 HTTP 요청 내용(L7)을 보고 웹 공격 패턴을 막는 장비·모�
 - 증상: 특정 화면에서만 저장이 안 되고, 애플리케이션 서버 로그에는 그 요청이 아예 찍히지 않는다. 요청이 서버에 닿기 전에 막힌 것이다.
 - 대응: WAF 쪽에서 해당 URL·파라미터를 예외 등록하거나, 애플리케이션에서 입력값을 인코딩(Base64, URL 인코딩)해 보내고 서버에서 푼다. 에디터 본문처럼 HTML이 정상인 입력은 예외 등록이 현실적이다.
 
-## 예시
+## 핵심 코드
+### 1) 판별 순서
 ```
 # 403이 WAF 차단인지 가르는 순서
 1. 애플리케이션 서버 access 로그에 요청이 있는가 → 없으면 앞단 차단
 2. 같은 요청에서 특수 문구만 빼고 보내면 성공하는가 → 룰 오탐
 3. 고객사 네트워크 담당에게 WAF 차단 로그 확인 요청 (시각, URL, 룰 ID)
+```
+
+### 2) 재현: 문구만 바꿔 같은 요청을 보낸다
+```bash
+URL="https://example.com/board/save"
+curl -s -o /dev/null -w "%{http_code}\n" -b "<세션 쿠키>" -X POST "$URL" --data-urlencode "content=hello"
+curl -s -o /dev/null -w "%{http_code}\n" -b "<세션 쿠키>" -X POST "$URL" --data-urlencode "content=<script>x</script>"
+# 403 응답 본문이 짧은 장비 페이지인지 본다
+curl -s -i -b "<세션 쿠키>" -X POST "$URL" --data-urlencode "content=select a from b" | head -20
+# 애플리케이션 서버에 요청이 도착했는지
+grep "POST /board/save" access_log.*.txt | tail -5
+```
+
+### 3) ModSecurity(CRS) 예외: 해당 URL의 해당 파라미터만 XSS 검사 제외
+```apache
+SecRule REQUEST_FILENAME "@beginsWith /board/save" \
+    "id:1000001,phase:1,pass,nolog,ctl:ruleRemoveTargetByTag=attack-xss;ARGS:content"
+
+# 새 룰을 넣을 때는 탐지 모드로 먼저 확인
+# SecRuleEngine DetectionOnly
+```
+
+### 4) 애플리케이션에서 인코딩해 보내고 서버에서 풀기
+```javascript
+// UTF-8 문자열 → Base64
+var encoded = btoa(unescape(encodeURIComponent(content)));
+$.post('/board/save', { contentB64: encoded });
+```
+```java
+String content = new String(Base64.getDecoder().decode(req.getParameter("contentB64")),
+                            StandardCharsets.UTF_8);
+// WAF 검사를 우회한 값이므로 서버의 XSS 필터·출력 이스케이프는 그대로 적용한다
 ```
 
 ## 주의할 점

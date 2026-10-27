@@ -1,6 +1,6 @@
 # iframe src 변경과 브라우저 방문 기록
 
-> 분류: 기타 · 최근 갱신: 2026-10-14
+> 분류: 기타 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 레이어 팝업용 iframe의 `src`를 바꿀 때마다 브라우저 세션 기록(history)이 하나씩 쌓여, 사용자가 뒤로가기를 여러 번 눌러야 이전 페이지로 돌아가는 문제가 생긴다. `contentWindow.location.replace()`로 바꾸면 기록이 남지 않는다.
@@ -12,7 +12,9 @@
 - 공용 함수에 적용할 때는 "기록 남기지 않기" 옵션을 추가하고 `=== true`일 때만 replace를 쓰면, 기존 호출부(다른 값을 5번째 인자로 넘기던 곳 등)에 영향을 주지 않는다.
 - 크롬 등은 사용자 상호작용(클릭) 없이 자동으로 생긴 기록 항목을 뒤로가기 때 건너뛰기도 한다(history manipulation intervention). 그래서 같은 코드에서도 팝업 안을 클릭했는지에 따라 필요한 뒤로가기 횟수가 달라 보일 수 있다.
 
-## 예시
+## 핵심 코드
+
+### 1) src 변경과 replace 비교
 ```javascript
 // 기록이 쌓임
 document.getElementById('layerFrame').src = '/blank.htm';
@@ -20,6 +22,45 @@ document.getElementById('layerFrame').src = '/blank.htm';
 document.getElementById('layerFrame').contentWindow.location.replace('/blank.htm');
 ```
 원인 위치 찾기: 단계마다 콘솔에서 `history.length`를 찍어 어디서 늘어나는지 본다.
+
+### 2) 공용 함수에 "기록 남기지 않기" 옵션 추가
+```javascript
+// 기존 호출부는 그대로 두고, 마지막 인자가 정확히 true 일 때만 replace
+function loadLayer(frameId, url, width, height, noHistory) {
+  var frame = document.getElementById(frameId);
+  if (noHistory === true) {
+    frame.contentWindow.location.replace(url);   // 기록 +0 (src 속성값은 이전 주소로 남음)
+  } else {
+    frame.src = url;                             // 기존 동작: 기록 +1
+  }
+  frame.style.width = width + "px";
+  frame.style.height = height + "px";
+}
+
+// 팝업 닫기: 빈 페이지로 돌릴 때도 기록을 남기지 않는다
+function closeLayer(frameId) { loadLayer(frameId, "/blank.htm", 0, 0, true); }
+```
+
+### 3) 화면 새로고침
+```javascript
+location.reload();                   // 기록이 늘지 않음
+location.replace(location.href);     // 같은 주소를 GET 으로 다시 열기(기록 교체)
+// location.href = location.href;   ← 기록이 늘 수 있는 방식
+```
+
+### 4) 기록이 어디서 늘어나는지 추적 (개발자 도구 콘솔)
+```javascript
+var lastLen = history.length;
+setInterval(function () {
+  if (history.length === lastLen) return;
+  lastLen = history.length;
+  var frames = Array.prototype.map.call(document.querySelectorAll("iframe"), function (f) {
+    try { return f.id + "=" + f.contentWindow.location.href; }
+    catch (e) { return f.id + "=(다른 출처)"; }
+  });
+  console.log("history.length=" + lastLen, frames);   // 늘어난 순간의 iframe 주소들
+}, 300);
+```
 
 ## 주의할 점
 - `contentWindow.location.replace`를 쓰면 iframe의 `src` 속성값은 이전 주소로 남는다. 다른 코드가 `src` 속성을 읽어 현재 페이지를 판단한다면 어긋난다.

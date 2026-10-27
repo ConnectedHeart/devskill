@@ -1,6 +1,6 @@
 # 외부 API가 빈 응답을 줄 때 원인 가르기
 
-> 분류: 기타 · 최근 갱신: 2026-10-21
+> 분류: 기타 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 외부 서버(AI 등)가 200에 빈 본문을 주면 "실패"와 "해당 없음"이 구분되지 않는다. 원인을 가를 때는 테스트 요청이 실제 클라이언트 요청과 같은지부터 확인하고, 응답 시간과 입력 조합 비교로 좁힌다.
@@ -15,13 +15,88 @@
 - **화면 상태와 서버 상태의 차이**: 화면에서 사용자가 고른 값이 저장 전까지 화면 변수에만 있고 서버는 DB 값만 읽는 구조라면, 저장 전에 하는 검사에는 사용자가 고른 값이 반영되지 않는다. 검사 요청에 화면의 현재 값을 함께 보내고, 없을 때만 저장된 값을 쓰게 한다.
 - **구분 가능한 응답을 요청하거나 미리 막는다**: 외부 서버에 "필수 정보 없음", "해당 규칙 없음"을 빈 값 대신 구분된 응답으로 달라고 요청한다. 클라이언트에서는 필수 입력이 비었으면 호출 전에 막고 항목별로 안내한다. 빈 응답을 "해당 없음"으로 바꿔 보여 주는 방법은 서버 장애 때도 같은 문구가 나오므로 결정이 필요하다.
 
-## 예시
+## 핵심 코드
+
+### 1) 입력 조합 표 예
 ```
 | 입력                       | 필수 정보 없음        | 필수 정보 있음                |
 |----------------------------|-----------------------|-------------------------------|
 | 규칙 A에 해당하는 본문     | 0.1초, 빈 응답        | 2.9초, 결과(FAIL)             |
 | 규칙 B에 해당하는 본문     | 0.0초, 빈 응답        | 3.4초, 결과(FAIL)             |
 | 어떤 규칙과도 무관한 본문  | 0.0초, 빈 응답        | 1.4초 처리 후 빈 응답         |
+```
+
+### 2) 경우별로 다른 로그 줄 남기기 (Java 8, HttpURLConnection)
+```java
+long t0 = System.nanoTime();
+try {
+    HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+    c.setConnectTimeout(3000);
+    c.setReadTimeout(30000);
+    c.setRequestMethod("POST");
+    c.setDoOutput(true);
+    c.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+    byte[] req = json.getBytes(StandardCharsets.UTF_8);
+    log.debug("EXT_REQ chars={} bytes={}", json.length(), req.length);   // 글자 수와 바이트 수를 따로
+    try (OutputStream o = c.getOutputStream()) { o.write(req); }
+
+    int code = c.getResponseCode();
+    InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
+    String body = (in == null) ? "" : readAll(in);
+    long ms = (System.nanoTime() - t0) / 1_000_000;
+    if (code != 200)                log.warn("EXT_STATUS code={} ms={} head={}", code, ms, head(body));
+    else if (body.trim().isEmpty()) log.warn("EXT_EMPTY ms={}", ms);              // 200 + 빈 본문
+    else if (!looksValid(body))     log.warn("EXT_FORMAT ms={} head={}", ms, head(body));
+    else                            log.info("EXT_OK ms={} len={}", ms, body.length());
+} catch (IOException e) {
+    log.warn("EXT_CONNECT ms={} err={}", (System.nanoTime() - t0) / 1_000_000, e.toString());
+}
+```
+```java
+static String readAll(InputStream in) throws IOException {
+    ByteArrayOutputStream b = new ByteArrayOutputStream();
+    byte[] buf = new byte[4096];
+    int n;
+    while ((n = in.read(buf)) != -1) b.write(buf, 0, n);
+    in.close();
+    return new String(b.toByteArray(), StandardCharsets.UTF_8);
+}
+static String head(String s) { return s.length() <= 200 ? s : s.substring(0, 200) + "..."; }
+```
+
+### 3) 비밀값은 유무·길이·해시 앞자리만 로그에
+```java
+static String maskSecret(String key) throws NoSuchAlgorithmException {
+    if (key == null || key.isEmpty()) return "none";
+    byte[] h = MessageDigest.getInstance("SHA-256").digest(key.getBytes(StandardCharsets.UTF_8));
+    return "len=" + key.length() + " sha256=" + String.format("%02x%02x%02x", h[0], h[1], h[2]);
+}
+```
+
+### 4) 입력 조합을 한 번에 돌리는 시험 스크립트 (bash + curl)
+```bash
+# 조합마다 요청 본문 파일을 준비해 둔다. 출력 시각으로 서버 로그와 맞춘다
+for f in A_noinfo.json A_info.json B_noinfo.json B_info.json none_info.json; do
+  printf '%s %-16s ' "$(date '+%H:%M:%S')" "$f"
+  curl -s -o "out_$f" -w 'status=%{http_code} time=%{time_total}s size=%{size_download}\n' \
+       -H 'Content-Type: application/json' --data-binary "@$f" "https://<서버>/api/check"
+done
+```
+
+### 5) 화면: 현재 값을 함께 보내고, 필수 입력이 비면 호출 전에 막기
+```javascript
+function runCheck() {
+  var payload = { body: getBody(), reviewers: currentReviewers() };   // 저장 전 화면 값도 보낸다
+  if (!payload.reviewers || payload.reviewers.length === 0) {
+    alert("검토자를 먼저 지정하세요.");                                // 빈 응답 대신 미리 안내
+    return;
+  }
+  fetch("/api/check", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload) })
+    .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.text(); })
+    .then(function (t) { if (!t.trim()) showInfo("판정 결과가 없습니다."); else render(JSON.parse(t)); })
+    .catch(function (e) { console.error(e); alert("검사 서버에 연결하지 못했습니다."); });  // 실패와 "결과 없음"을 나눈다
+}
 ```
 
 ## 주의할 점

@@ -1,6 +1,6 @@
 # RestTemplate JSON 호출의 숫자 타입과 타임아웃
 
-> 분류: Java·Spring · 최근 갱신: 2026-10-01
+> 분류: Java·Spring · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 JSON 라이브러리마다 숫자와 중첩 객체를 다른 자바 타입으로 돌려주기 때문에 캐스팅 코드가 실행 중에 터지고, 호출 하나의 타임아웃만 바꾸려면 전용 `RestTemplate`을 따로 만든다.
@@ -26,7 +26,8 @@ JSON 라이브러리마다 숫자와 중첩 객체를 다른 자바 타입으로
 - 연결 대기(connect)와 응답 대기(read)는 별개다. 서버가 살아 있으면 연결은 보통 1초 안에 끝나므로 연결 대기는 짧게(수 초), 응답 대기는 처리 시간에 맞춰 둔다.
 - 공용 `RestTemplate` 빈의 타임아웃을 바꾸면 그 빈을 쓰는 모든 호출에 영향이 간다. 특정 호출만 다르게 하려면 전용 인스턴스를 만든다.
 
-## 예시
+## 핵심 코드
+### 1) 이 호출만 쓰는 전용 RestTemplate과 JSON 호출
 ```java
 private final RestTemplate longRestTemplate = createLongRestTemplate();
 
@@ -44,6 +45,61 @@ ResponseEntity<String> res = longRestTemplate.exchange(
         url, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
 JSONObject json = (JSONObject) new JSONParser().parse(res.getBody());
 int failCount = ((Number) json.get("failCount")).intValue();
+```
+
+### 2) 4xx/5xx와 빠진 필드 처리
+```java
+try {
+    ResponseEntity<String> res = longRestTemplate.exchange(
+            url, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+    JSONObject json = (JSONObject) new JSONParser().parse(res.getBody());
+    Object v = json.get("failCount");
+    int failCount = v == null ? 0 : ((Number) v).intValue();   // 오류 응답엔 필드가 없을 수 있음
+} catch (HttpStatusCodeException e) {                         // 4xx/5xx
+    log.warn("status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+} catch (RestClientException e) {                             // 연결 실패·타임아웃
+    log.warn("call failed: {}", url, e);
+}
+```
+
+### 3) Jackson으로 Map을 받을 때도 Number로 꺼내기
+```java
+ObjectMapper mapper = new ObjectMapper();
+@SuppressWarnings("unchecked")
+Map<String, Object> map = mapper.readValue(res.getBody(), Map.class);
+
+static int toInt(Object v) {                 // Integer든 Long이든 Double이든 처리
+    return v instanceof Number ? ((Number) v).intValue() : Integer.parseInt(String.valueOf(v));
+}
+int count = toInt(map.get("count"));
+@SuppressWarnings("unchecked")
+Map<String, Object> inner = (Map<String, Object>) map.get("result");   // 안쪽 객체는 LinkedHashMap
+```
+
+### 4) Gson을 거쳐야 한다면 정수를 정수로 읽게 설정 (Gson 2.8.9 이상)
+```java
+Gson gson = new GsonBuilder()
+        .setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)   // 기본값은 모두 Double
+        .create();
+Map<?, ?> m = gson.fromJson(jsonText, Map.class);   // 123 → Long 123, 1.5 → Double 1.5
+```
+
+### 5) XML로 두 번째 RestTemplate 빈 등록
+```xml
+<!-- autowire-candidate="false": 기존 @Autowired RestTemplate 주입이 모호해지지 않게 -->
+<bean id="longRestTemplate" class="org.springframework.web.client.RestTemplate"
+      autowire-candidate="false">
+    <constructor-arg>
+        <bean class="org.springframework.http.client.HttpComponentsClientHttpRequestFactory">
+            <property name="connectTimeout" value="5000"/>   <!-- 연결 대기(ms) -->
+            <property name="readTimeout" value="30000"/>     <!-- 응답 대기(ms) -->
+        </bean>
+    </constructor-arg>
+</bean>
+```
+```java
+@Resource(name = "longRestTemplate")   // 타입이 아니라 이름으로 주입
+private RestTemplate longRestTemplate;
 ```
 
 ## 주의할 점

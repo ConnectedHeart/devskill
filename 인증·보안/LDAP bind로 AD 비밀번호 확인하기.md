@@ -1,6 +1,6 @@
 # LDAP bind로 AD 비밀번호 확인하기
 
-> 분류: 인증·보안 · 최근 갱신: 2026-10-14
+> 분류: 인증·보안 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 애플리케이션이 Active Directory 비밀번호를 확인할 때는 비밀번호를 비교하지 않고, 입력값으로 AD에 LDAP simple bind를 시도해 성공 여부로 판정한다. 빈 비밀번호·인증서 검증·장애 처리에 주의해야 한다.
@@ -12,7 +12,8 @@
 - **관리용 예외 계정**: AD에 없는 내장 관리자 계정은 bind를 건너뛰고 앱 DB로만 확인하도록 분기하는 경우가 많다.
 - **API 로그인 경로**: 화면 로그인 외에 토큰 발급 API를 따로 만들면 같은 AD 확인을 거쳐야 AD 사용자가 로그인할 수 있다. 호출자는 AD 여부와 무관하게 같은 파라미터(아이디·비밀번호)를 보내면 되고, 도메인 접미사는 서버가 붙인다(앱 아이디와 AD 계정명이 같다는 전제).
 
-## 예시
+## 핵심 코드
+### 1) bind로 비밀번호 확인 (JNDI)
 ```java
 Hashtable<String, String> env = new Hashtable<>();
 env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
@@ -28,6 +29,50 @@ try {
 } catch (NamingException e) {
     throw e;              // 서버 장애는 '틀림'과 구분하는 것이 좋다
 }
+```
+
+### 2) bind 전에 거를 것과 타임아웃
+```java
+// 1)의 반환값을 3)의 LdapResult로 바꿔 쓴 형태
+// 빈 비밀번호는 익명 bind로 "성공"할 수 있으므로 반드시 먼저 거른다
+if (userId == null || userId.trim().isEmpty() || password == null || password.isEmpty()) {
+    return LdapResult.BAD_PASSWORD;
+}
+env.put("com.sun.jndi.ldap.connect.timeout", "3000");   // ms, 연결 단계
+env.put("com.sun.jndi.ldap.read.timeout", "5000");      // ms, 응답 대기
+```
+
+### 3) 결과를 세 가지로 나눠 로그인에 반영
+```java
+enum LdapResult { OK, BAD_PASSWORD, UNAVAILABLE }  // NamingException(장애)은 UNAVAILABLE로
+
+if (isBuiltinAdmin(userId)) return checkDbPassword(userId, password);   // AD에 없는 관리 계정
+LdapResult r = ldapCheck(userId, password);
+switch (r) {
+    case OK:
+        updateDbPassword(userId, hash(password));   // AD가 기준, 앱 DB는 사본으로 동기화
+        resetFailCount(userId);
+        return true;
+    case BAD_PASSWORD:
+        increaseFailCount(userId);                  // DB 비밀번호가 맞아도 거부
+        return false;
+    default:
+        throw new IllegalStateException("directory unavailable");   // 실패 횟수 올리지 않음
+}
+```
+
+### 4) AD CA 인증서를 트러스트스토어에 등록
+```bash
+keytool -importcert -alias ad-ca -file ad-ca.cer -keystore ad-truststore.jks
+# JVM 전체 트러스트스토어가 바뀌므로 공용 CA도 필요하면 기본 cacerts를 복사해 거기에 추가한다
+java -Djavax.net.ssl.trustStore=ad-truststore.jks -Djavax.net.ssl.trustStorePassword=<비밀번호> ...
+```
+
+### 5) 명령줄로 bind 확인
+```bash
+# 비밀번호가 틀리면 "Invalid credentials (49)"
+LDAPTLS_CACERT=ad-ca.pem ldapsearch -x -H ldaps://ad.example.com:636 \
+  -D "user1@example.com" -W -b "" -s base
 ```
 
 ## 주의할 점

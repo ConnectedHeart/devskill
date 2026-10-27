@@ -1,6 +1,6 @@
 # PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시
 
-> 분류: Windows·자동화 · 최근 갱신: 2026-10-08
+> 분류: Windows·자동화 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 WinForms 창에서 빌드·ssh 같은 명령을 창 없이 실행하고 출력을 로그 상자에 흘려보내려면, 표준출력을 파이프로 돌려 비동기로 한 줄씩 읽으면서 UI 이벤트를 주기적으로 처리한다.
@@ -15,7 +15,68 @@ WinForms 창에서 빌드·ssh 같은 명령을 창 없이 실행하고 출력�
 - **종료 상태를 로그 끝에 남기기**: 작업이 끝나면 성공·실패·중지 중 무엇인지와 소요 시간을 마지막 줄에 항상 찍는다. 로그만 보고 끝났는지 알 수 있어야 한다.
 - **실행기**: `.bat`에서 `powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File "%~dp0Tool.ps1"`로 띄운다. `-STA`는 WinForms에 필요하고 `%~dp0`은 bat이 있는 폴더라 폴더째 옮겨도 동작한다.
 
-## 예시
+## 핵심 코드
+### 1) 실행기 bat (Tool.ps1 옆에 둔다)
+```bat
+@echo off
+rem %~dp0 = 이 bat이 있는 폴더. -STA는 WinForms에 필요
+start "" powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File "%~dp0Tool.ps1"
+```
+
+### 2) 창, 로그 상자, 실행·중지 버튼
+```powershell
+Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+$projectDir = 'C:\<경로>\project'                       # 명령을 실행할 폴더
+$form = New-Object System.Windows.Forms.Form
+$form.Text = 'Build Tool'; $form.Width = 900; $form.Height = 600
+
+$logBox = New-Object System.Windows.Forms.TextBox
+$logBox.Multiline = $true; $logBox.ReadOnly = $true; $logBox.ScrollBars = 'Vertical'
+$logBox.Dock = 'Fill'; $logBox.Font = New-Object System.Drawing.Font('Consolas', 9)
+
+$btnRun  = New-Object System.Windows.Forms.Button; $btnRun.Text  = 'Run';  $btnRun.Dock  = 'Top'
+$btnStop = New-Object System.Windows.Forms.Button; $btnStop.Text = 'Stop'; $btnStop.Dock = 'Top'
+$form.Controls.AddRange(@($logBox, $btnStop, $btnRun))  # Fill 컨트롤을 맨 앞에 넣어야 남은 영역을 채운다
+
+$script:stopRequested = $false
+$btnStop.Add_Click({ $script:stopRequested = $true })
+$btnRun.Add_Click({ Invoke-ToolCommand -Command 'mvn clean package' -WorkDir $projectDir })
+# Invoke-ToolCommand 는 3)의 함수. ShowDialog 보다 위에 정의한다
+[void]$form.ShowDialog()
+```
+
+### 3) stdout·stderr 함께 읽기, 중지, 종료 상태 남기기
+```powershell
+function Invoke-ToolCommand([string]$Command, [string]$WorkDir) {
+    $si = New-Object System.Diagnostics.ProcessStartInfo
+    $si.FileName = 'cmd.exe'; $si.Arguments = "/c $Command"; $si.WorkingDirectory = $WorkDir
+    $si.UseShellExecute = $false; $si.CreateNoWindow = $true
+    $si.RedirectStandardOutput = $true; $si.RedirectStandardError = $true
+    $si.StandardOutputEncoding = [Text.Encoding]::Default   # 5.1에서는 시스템 코드페이지. ssh 등은 [Text.Encoding]::UTF8
+    $si.StandardErrorEncoding  = [Text.Encoding]::Default
+    $sw = [Diagnostics.Stopwatch]::StartNew(); $script:stopRequested = $false; $status = $null
+    $p = [System.Diagnostics.Process]::Start($si)
+    $out = $p.StandardOutput.ReadLineAsync(); $err = $p.StandardError.ReadLineAsync(); $n = 0
+    while ($out -or $err) {
+        $got = $false
+        if ($out -and $out.IsCompleted) {
+            if ($null -eq $out.Result) { $out = $null } else { $logBox.AppendText($out.Result + "`r`n"); $out = $p.StandardOutput.ReadLineAsync(); $got = $true }
+        }
+        if ($err -and $err.IsCompleted) {
+            if ($null -eq $err.Result) { $err = $null } else { $logBox.AppendText('[ERR] ' + $err.Result + "`r`n"); $err = $p.StandardError.ReadLineAsync(); $got = $true }
+        }
+        if ($script:stopRequested) { taskkill /T /F /PID $p.Id | Out-Null; $status = 'STOPPED'; break }  # 자식 프로세스까지
+        if (-not $got) { [System.Windows.Forms.Application]::DoEvents(); Start-Sleep -Milliseconds 20 }
+        elseif ((++$n % 50) -eq 0) { [System.Windows.Forms.Application]::DoEvents() }   # 줄이 쏟아질 때도 버튼이 눌리게
+    }
+    $p.WaitForExit()
+    if (-not $status) { $status = if ($p.ExitCode -eq 0) { 'SUCCESS' } else { "FAILED (exit $($p.ExitCode))" } }
+    $logBox.AppendText("==== $status, elapsed $($sw.Elapsed.ToString('hh\:mm\:ss')) ====`r`n")
+}
+```
+ssh처럼 질문이 뜰 수 있는 명령은 질문 대신 실패하도록 준다: `ssh -o BatchMode=yes -o ConnectTimeout=10 <사용자>@<호스트> "<명령>"`.
+
+### 4) stdout 한 줄씩 읽기 (가장 단순한 형태)
 ```powershell
 $si = New-Object System.Diagnostics.ProcessStartInfo
 $si.FileName = 'cmd.exe'
@@ -41,6 +102,14 @@ while ($true) {
 }
 $p.WaitForExit()
 $p.ExitCode
+```
+
+### 5) 주석 줄이 있는 JSON 설정 읽기
+```powershell
+# settings.json 안에서 // 로 시작하는 줄만 주석으로 걸러 낸다(값 뒤 주석은 안 됨)
+$path = Join-Path $PSScriptRoot 'settings.json'
+$json = (Get-Content $path -Encoding UTF8 | Where-Object { $_ -notmatch '^\s*//' }) -join "`n"
+$config = $json | ConvertFrom-Json
 ```
 
 ## 주의할 점

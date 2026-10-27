@@ -1,6 +1,6 @@
 # synchronized와 잠금 객체 나누기(lock striping)
 
-> 분류: Java·Spring · 최근 갱신: 2026-10-07
+> 분류: Java·Spring · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 `synchronized`는 같은 잠금 객체에 대해 한 번에 한 스레드만 블록에 들어가게 하는 장치이고, 키별로 줄을 세우고 싶을 때는 미리 만든 잠금 객체 N개 중 하나를 키의 해시로 고르는 방식(lock striping)을 쓴다.
@@ -17,7 +17,8 @@
 - **성능**: 경합이 없을 때 `synchronized` 자체는 수십 나노초 수준이다. 비용은 잠금이 아니라 블록 안에서 하는 일(외부 호출 등)에서 나온다. 그래서 대부분의 요청이 잠금 없이 끝나도록 빠른 경로를 앞에 두고, 꼭 필요한 구간만 감싼다.
 - **한계**: 한 JVM 안에서만 통한다. 서버가 여러 대면 DB 행 잠금 같은 공유 잠금이 따로 필요하다. 이때도 `synchronized`를 함께 두면, 같은 서버의 대기 요청이 DB 커넥션을 잡지 않고 메모리에서 줄을 서게 되어 커넥션을 아낀다.
 
-## 예시
+## 핵심 코드
+### 1) 고정 개수 잠금 객체와 "잠금 안에서 다시 읽기"
 ```java
 private static final Object[] LOCKS = new Object[64];
 static {
@@ -43,6 +44,54 @@ String resolve(String key) {
         }
         return v.get();
     }
+}
+```
+
+### 2) 서버가 여러 대일 때: 메모리 잠금 바깥, DB 행 잠금 안쪽
+```java
+public String resolveShared(String key) {
+    Value v = load(key);
+    if (v.isUsable()) {
+        return v.get();
+    }
+    synchronized (lockFor(key)) {           // 같은 서버 요청은 여기서 커넥션 없이 줄을 선다
+        // 트랜잭션(REQUIRES_NEW)이 걸린 별도 빈: SELECT ... FOR UPDATE → 다시 판정 → 갱신
+        return rowLockService.refreshIfNeeded(key);
+    }
+}
+```
+
+### 3) 실패 후 일정 시간 재시도하지 않기
+```java
+private static final long RETRY_AFTER_MILLIS = 30_000L;
+private final ConcurrentHashMap<String, Long> failedAt = new ConcurrentHashMap<>();
+
+String resolveWithBackoff(String key) {
+    Long t = failedAt.get(key);
+    if (t != null && System.currentTimeMillis() - t < RETRY_AFTER_MILLIS) {
+        throw new IllegalStateException("recently failed: " + key);   // 잠금도 외부 호출도 하지 않음
+    }
+    try {
+        String result = resolve(key);
+        failedAt.remove(key);
+        return result;
+    } catch (RuntimeException e) {
+        failedAt.put(key, System.currentTimeMillis());
+        throw e;
+    }
+}
+```
+
+### 4) 라이브러리로: Guava `Striped`
+```java
+private final Striped<Lock> locks = Striped.lock(64);   // 같은 키 → 같은 Lock
+
+Lock lock = locks.get(key);
+lock.lock();
+try {
+    // 잠금 안에서 다시 읽고 필요할 때만 갱신
+} finally {
+    lock.unlock();
 }
 ```
 

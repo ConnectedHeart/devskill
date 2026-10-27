@@ -1,6 +1,6 @@
 # format-patch와 am으로 커밋 옮기기와 적용 전 검증
 
-> 분류: Git · 최근 갱신: 2026-10-23
+> 분류: Git · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 다른 브랜치나 다른 저장소로 커밋 몇 개를 넘길 때는 `git format-patch`로 패치 파일을 만들고 받는 쪽에서 `git am`으로 적용한다. 적용 전에는 체크아웃 없이 임시 인덱스로 `git apply --cached --check`를 돌려 충돌 여부를 미리 본다.
@@ -39,36 +39,80 @@
 - `space before tab in indent` 같은 공백 경고는 오류가 아니라 경고다. `git am`/`git apply`는 경고만 내고 적용한다(`--whitespace=fix`로 고치며 적용할 수도 있다).
 - Git for Windows에서 `/c/...` 형태 경로나 특수문자가 많은 파일명을 못 읽을 때는 패치를 단순한 이름으로 복사해 넘긴다. 파일명에 쓸 수 없는 문자(`/`, `:` 등)가 제목에 있으면 이름을 바꿀 때 공백 등으로 바꾼다.
 
-## 예시
+## 핵심 코드
+### 1) 넘길 커밋 찾기
 ```bash
-# 작업 브랜치에만 있는 내 커밋
-git log --cherry-pick --right-only --oneline release..feature --author="홍길동"
+git fetch origin
+# 작업 브랜치에만 있는 내 커밋 (같은 내용으로 이미 체리픽된 것은 제외)
+git log --cherry-pick --right-only --oneline release...feature --author="홍길동"
+git log --cherry-pick --right-only --no-merges --reverse --format='%h %ad %s' --date=short origin/release...origin/feature
+```
+(본문의 `릴리즈..작업브랜치`는 `--cherry-pick`이 비교하려면 점 세 개(`...`) 대칭 범위로 써야 한다.)
 
-# 패치 생성 (오래된 것부터)
+### 2) 패치 만들기
+```bash
+# 커밋마다 하나씩 (오래된 것부터)
 git format-patch -o ~/Desktop/patches -1 <해시1>
 git format-patch -o ~/Desktop/patches -1 <해시2>
 
-# 체크아웃 없이 적용 가능 여부 확인
-GIT_INDEX_FILE=/tmp/idx git read-tree release
-GIT_INDEX_FILE=/tmp/idx git apply --cached --check ~/Desktop/patches/*.patch
+# 연속된 범위를 한 번에: 0001-, 0002- 순번이 붙는다
+git format-patch -o ~/Desktop/patches <첫해시>^..<마지막해시>
 
-# 받는 쪽에서 적용 (제목의 [모듈] 태그 유지)
+# 번호를 붙여 여러 개를 따로 만들 때 순번 지정
+git format-patch -o ~/Desktop/patches --start-number 3 -1 <해시3>
+```
+
+### 3) 체크아웃 없이 임시 인덱스로 미리 확인
+```bash
+export GIT_INDEX_FILE=/tmp/idx          # 이 셸에서만 임시 인덱스 사용
+git read-tree release                   # 받는 브랜치의 트리를 임시 인덱스에 읽기
+for p in ~/Desktop/patches/*.patch; do
+  if git apply --cached --check "$p"; then
+    git apply --cached "$p"             # 다음 패치가 앞 패치 결과를 전제로 하므로 실제로 쌓는다
+    echo "OK   $p"
+  else
+    echo "FAIL $p"; break
+  fi
+done
+unset GIT_INDEX_FILE && rm -f /tmp/idx  # 실제 인덱스와 작업 폴더는 그대로
+```
+
+### 4) 받는 쪽에서 적용
+```bash
+git status --short                      # 커밋하지 않은 변경이 없어야 한다
 git checkout release
-git am --keep-non-patch ~/Desktop/patches/*.patch
+git am --keep-non-patch ~/Desktop/patches/*.patch   # 제목의 [모듈] 태그 유지
 
 # 0001만 빼고 적용 (Git Bash 중괄호 펼침: 0002 ~ 0010)
 git am "C:/<경로>/patches/"00{02..10}*.patch
 
-# 임시 워크트리에서 순서대로 실제 적용해 보기
-git worktree add C:/wt-try <기준커밋>
+# 충돌로 멈췄을 때
+git am --show-current-patch=diff        # 막힌 패치 내용
+git am --abort                          # 이번 am 전체를 실행 전으로
+git am --3way --keep-non-patch ~/Desktop/patches/*.patch   # 3-way로 충돌 표시를 만들어 적용
+git add <해결한 파일> && git am --continue
+git am --skip                           # 그 패치만 건너뜀
+```
+
+### 5) 임시 worktree에서 순서대로 실제 적용해 보기
+```bash
+git worktree add --detach C:/wt-try <기준커밋>
 git -C C:/wt-try am --keep-non-patch ~/Desktop/patches/*.patch
+git -C C:/wt-try log --oneline -5
 git worktree remove --force C:/wt-try
 ```
 
+### 6) PowerShell에서 적용
 ```powershell
-# PowerShell: 전체 적용 / 특정 패치 제외
+# 전체 적용 / 특정 패치 제외
 git am (Get-ChildItem "<경로>\patches\*.patch").FullName
 git am (Get-ChildItem "<경로>\patches\*.patch" | Where-Object Name -notlike '0001*' | Sort-Object Name).FullName
+
+# 체크아웃 없이 확인 (PowerShell)
+$env:GIT_INDEX_FILE = "$env:TEMP\idx"
+git read-tree release
+git apply --cached --check (Get-ChildItem "<경로>\patches\*.patch" | Sort-Object Name).FullName
+Remove-Item Env:GIT_INDEX_FILE; Remove-Item "$env:TEMP\idx"
 ```
 
 ## 주의할 점

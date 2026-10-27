@@ -1,6 +1,6 @@
 # SSH config Host 별칭과 hosts 파일의 차이
 
-> 분류: 네트워크 · 최근 갱신: 2026-10-15
+> 분류: 네트워크 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 git 원격 주소에 보이는 짧은 호스트명이 어디서도 안 풀리는 것 같다면 `~/.ssh/config`의 `Host` 별칭일 수 있다. SSH만 해석하므로 `ping`이나 브라우저에서는 그 이름을 쓸 수 없다.
@@ -30,6 +30,44 @@ Host gitbox
 cat ~/.ssh/config
 ssh -G gitbox | grep -E '^(hostname|user|port|identityfile)'   # 최종 적용 값
 git remote -v
+```
+
+## 핵심 코드
+### 1) 별칭 정의 (~/.ssh/config)
+```ssh-config
+# ssh_config는 줄 끝 주석을 지원하지 않으므로 주석은 따로 한 줄로 쓴다
+Host gitbox
+    # 실제 주소로 바꾼다
+    HostName 192.0.2.10
+    User git
+    Port 22
+    IdentityFile ~/.ssh/id_rsa_work
+    # 지정한 키만 시도
+    IdentitiesOnly yes
+```
+
+### 2) 원격을 별칭으로 바꾸고 접속 확인
+```bash
+git remote set-url origin git@gitbox:/srv/git/repo.git
+git ls-remote origin                 # 목록이 나오면 별칭·키·포트가 모두 맞음
+ssh -G gitbox | grep -E '^(hostname|user|port|identityfile) '
+```
+```powershell
+ssh -G gitbox | Select-String '^(hostname|user|port|identityfile) '
+```
+
+### 3) config 없이 한 번만 키 지정
+```bash
+GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa_work -o IdentitiesOnly=yes" git fetch origin
+```
+
+### 4) 비교: OS 전체에 이름을 주려면 hosts 파일 (관리자 권한)
+```text
+# /etc/hosts 또는 C:\Windows\System32\drivers\etc\hosts
+192.0.2.10    gitbox
+```
+```powershell
+[System.Net.Dns]::GetHostAddresses('gitbox')   # hosts·DNS로 풀리는지 (ssh config는 보지 않음)
 ```
 
 ## 주의할 점

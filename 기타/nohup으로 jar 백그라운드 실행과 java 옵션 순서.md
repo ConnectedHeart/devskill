@@ -1,6 +1,6 @@
 # nohup으로 jar 백그라운드 실행과 java 옵션 순서
 
-> 분류: 기타 · 최근 갱신: 2026-10-15
+> 분류: 기타 · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 `java` 명령에서 `-D`, `-cp` 같은 JVM 옵션은 `-jar 파일명` 앞에 와야 한다. 뒤에 쓰면 프로그램 인자로 넘어가 적용되지 않는다. `-jar`를 쓰면 `-cp`는 무시된다. 터미널을 닫아도 살아 있게 하려면 `nohup ... &`로 띄우되 출력을 어디로 보낼지 정한다.
@@ -18,7 +18,9 @@
 - `> /dev/null 2>&1`로 버리면 파일은 안 생기지만 기동 실패 로그도 남지 않는다. 애플리케이션이 자체 로그 파일을 쓰는지 먼저 확인하고, 아니면 `> app.out 2>&1`처럼 파일로 보낸다.
 - 서비스로 오래 돌릴 것이라면 systemd 유닛이 재시작·로그 관리 면에서 낫다.
 
-## 예시
+## 핵심 코드
+
+### 1) 올바른 옵션 순서로 백그라운드 실행
 ```bash
 # 환경 변수 (예: 셸 프로필)
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/app/lib64
@@ -29,6 +31,68 @@ nohup java -Djava.library.path=$LD_LIBRARY_PATH -jar app-0.0.1-SNAPSHOT.jar > /o
 # 기동 확인
 tail -f /opt/app/app.out
 ps -ef | grep app-0.0.1
+```
+
+### 2) 외부 jar를 같이 쓸 때 (-jar 대신 -cp + 메인 클래스)
+```bash
+java -Djava.library.path=/opt/app/lib64 \
+     -cp "app.jar:lib/*" com.example.Main arg1      # 바꿔야 할 곳: 메인 클래스. Windows 는 ; 로 구분
+```
+
+### 3) -jar 로 실행하면서 외부 jar 쓰기 (매니페스트 Class-Path)
+```text
+Main-Class: com.example.Main
+Class-Path: lib/a.jar lib/b.jar
+```
+```bash
+# manifest.txt 는 마지막 줄 끝에 줄바꿈이 있어야 한다
+jar cfm app.jar manifest.txt -C classes .
+```
+
+### 4) 시작·중지 스크립트 (PID 파일)
+```bash
+#!/bin/bash
+# start.sh
+APP_HOME=/opt/app
+cd "$APP_HOME" || exit 1
+nohup java -Xms512m -Xmx1g -Djava.library.path="$APP_HOME/lib64" \
+     -jar app.jar --server.port=8080 > "$APP_HOME/app.out" 2>&1 &    # --server.port 는 프로그램 인자
+echo $! > "$APP_HOME/app.pid"
+```
+```bash
+# stop.sh
+kill "$(cat /opt/app/app.pid)" && rm -f /opt/app/app.pid
+```
+
+### 5) 옵션이 실제로 적용됐는지 확인
+```bash
+ps -o args= -p "$(cat /opt/app/app.pid)"                      # 실제 명령줄 순서 확인
+jcmd "$(cat /opt/app/app.pid)" VM.system_properties | grep java.library.path
+```
+
+### 6) 오래 돌릴 서비스면 systemd 유닛
+```ini
+# /etc/systemd/system/myapp.service
+[Unit]
+Description=My App
+After=network.target
+
+[Service]
+User=app
+WorkingDirectory=/opt/app
+Environment=LD_LIBRARY_PATH=/opt/app/lib64
+ExecStart=/usr/bin/java -Djava.library.path=/opt/app/lib64 -jar /opt/app/app.jar
+Restart=on-failure
+# SIGTERM 으로 끝난 java 의 종료 코드(143)를 정상으로 본다
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
+```
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now myapp
+journalctl -u myapp -f          # 출력은 저널로 간다(nohup.out 없음)
 ```
 
 ## 주의할 점

@@ -1,6 +1,6 @@
 # git commit --fixup과 autosquash
 
-> 분류: Git · 최근 갱신: 2026-10-08
+> 분류: Git · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 뒤에 다른 커밋이 쌓인 뒤에 예전 커밋을 고치려면, 보충 커밋을 `--fixup`으로 만들어 두고 `rebase --autosquash`로 원래 커밋에 합친다.
@@ -11,16 +11,46 @@
 - **`--amend`와의 차이**: `--amend`는 가장 마지막 커밋만 고친다. 그 뒤에 커밋이 더 쌓였다면 fixup 방식을 쓴다.
 - **여러 작업이 섞인 작업 트리 나누기**: 파일 단위로 어느 작업의 변경인지 먼저 목록을 나눈 뒤 `git add <파일들>`로 한 작업씩 스테이징해 커밋한다. 한 파일에 두 작업이 섞여 있으면 `git add -p`로 덩어리 단위로 고른다. 디버깅용 로그처럼 커밋에 넣지 않을 변경은 커밋 전에 지운다.
 
-## 예시
+## 핵심 코드
+### 1) 보충 커밋 만들고 합치기
 ```bash
+git log --oneline -10               # 고칠 커밋 해시 확인 (예: abc1234)
 git add src/Foo.java
 git commit --fixup=abc1234          # "fixup! 원래 커밋 제목" 커밋이 생김
 git rebase -i --autosquash abc1234~1
 ```
 
-```
+```text
 전:  A 원래 커밋 (abc1234)   B 다른 작업   C fixup! 원래 커밋
 후:  A' 원래 커밋 (C 포함, 해시 바뀜)   B' 다른 작업 (해시 바뀜)
+```
+
+### 2) 편집기 없이 합치고 결과 확인
+```bash
+before=$(git rev-parse HEAD)                              # 합치기 전 끝 커밋
+GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash abc1234~1   # 할 일 목록을 그대로 저장한 것처럼 진행
+git diff "$before" HEAD                                   # 비어 있어야 정상(내용은 같고 이력만 바뀜)
+git log --oneline -5                                      # fixup! 커밋이 사라졌는지
+```
+
+### 3) 늘 autosquash로 쓰기, 충돌 시 처리
+```bash
+git config --global rebase.autoSquash true   # rebase -i 때 --autosquash 생략 가능
+# rebase 중 충돌이 나면
+git status --short
+git add <해결한 파일>
+git rebase --continue
+git rebase --abort                           # 시작 전으로 되돌리기
+```
+
+### 4) 섞인 작업 트리를 작업별로 나눠 커밋
+```bash
+git status --short
+git add <작업1 파일들>
+git add -p <두 작업이 섞인 파일>      # 덩어리마다 y/n로 고름
+git diff --cached --stat               # 스테이징된 것 확인
+git commit -m "<작업1 제목>"
+git add <작업2 파일들> && git commit -m "<작업2 제목>"
 ```
 
 ## 주의할 점

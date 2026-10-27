@@ -1,6 +1,6 @@
 # Oracle DB 링크와 원격 객체 존재 확인
 
-> 분류: DB·SQL · 최근 갱신: 2026-10-22
+> 분류: DB·SQL · 최근 갱신: 2026-10-27
 
 ## 한 줄 요약
 `테이블@링크` 형태로 다른 DB의 객체를 쓰는 코드가 있을 때, 링크 존재 → 접속 → 원격 객체 존재 → 실제 읽기 권한 순으로 나눠 확인하면 어느 단계에서 막혔는지 오류 코드로 바로 가를 수 있다.
@@ -20,7 +20,8 @@
 - **실제로 읽히는지**: 한 행만 조회해 본다. `ORA-00942`(테이블 또는 뷰가 존재하지 않음)는 객체가 없거나 링크 계정에 SELECT 권한이 없는 경우 모두 나온다.
 - **시노님**: 코드가 링크를 직접 쓰지 않고 시노님을 거칠 수도 있다. `ALL_SYNONYMS`의 `DB_LINK` 컬럼으로 링크를 쓰는 시노님을 찾는다.
 
-## 예시
+## 핵심 코드
+### 1) 단계별 확인 쿼리
 ```sql
 -- 1. 링크 존재
 SELECT OWNER, DB_LINK, USERNAME, HOST, CREATED
@@ -47,6 +48,38 @@ SELECT OWNER, SYNONYM_NAME, TABLE_OWNER, TABLE_NAME, DB_LINK
 -- 끝나면 링크 세션 닫기
 COMMIT;
 ALTER SESSION CLOSE DATABASE LINK MYLINK;
+```
+
+### 2) ORA-00942일 때: 링크 계정과 권한 확인
+```sql
+-- 링크가 원격에서 어떤 계정으로 접속하는지
+SELECT USER FROM DUAL@MYLINK;
+
+-- 그 계정(또는 PUBLIC·활성 롤)이 원격 객체에 받은 권한
+SELECT GRANTEE, TABLE_SCHEMA, TABLE_NAME, PRIVILEGE
+  FROM ALL_TAB_PRIVS@MYLINK
+ WHERE TABLE_SCHEMA = 'REMOTE_OWNER'
+   AND TABLE_NAME = 'MY_VIEW';
+```
+
+### 3) 링크를 쓰는 곳 찾기
+```sql
+-- DB 안의 프로시저·함수·패키지 소스
+SELECT OWNER, NAME, TYPE, LINE
+  FROM ALL_SOURCE
+ WHERE UPPER(TEXT) LIKE '%@MYLINK%';
+```
+```bash
+# 애플리케이션 소스·매퍼
+grep -rni "@MYLINK" src/
+```
+
+### 4) (테스트 환경) 링크 만들기
+```sql
+-- CREATE DATABASE LINK 권한 필요. 비밀번호는 결과 공유·로그에 남기지 않는다
+CREATE DATABASE LINK MYLINK
+  CONNECT TO remote_user IDENTIFIED BY "<비밀번호>"
+  USING '<TNS 별칭>';
 ```
 
 ## 주의할 점
