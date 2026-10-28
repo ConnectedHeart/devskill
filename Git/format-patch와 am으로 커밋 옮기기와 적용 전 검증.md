@@ -39,6 +39,14 @@
 - `space before tab in indent` 같은 공백 경고는 오류가 아니라 경고다. `git am`/`git apply`는 경고만 내고 적용한다(`--whitespace=fix`로 고치며 적용할 수도 있다).
 - Git for Windows에서 `/c/...` 형태 경로나 특수문자가 많은 파일명을 못 읽을 때는 패치를 단순한 이름으로 복사해 넘긴다. 파일명에 쓸 수 없는 문자(`/`, `:` 등)가 제목에 있으면 이름을 바꿀 때 공백 등으로 바꾼다.
 
+### -3(3-way)의 원리와 멈춘 상태 읽기
+- 패치의 `index 1a2b3c..4d5e6f` 줄에는 바뀌기 전 파일의 blob 해시가 있다. `-3`은 받는 저장소에서 그 blob을 찾아 공통 조상으로 삼고 "원본→패치"와 "원본→현재 파일"을 병합한다. 자동으로 합쳐지면 넘어가고, 안 되면 충돌 표시를 남기고 멈춘다.
+- 그래서 받는 저장소에 원본 이력이 있어야 한다(clone이나 bundle로 만든 저장소). 소스만 복사해 만든 저장소에서는 `error: could not build fake ancestor`로 실패한다. 이때는 `git apply --reject`로 맞는 부분만 적용하고 안 맞는 부분은 `.rej` 파일로 받아 손으로 옮긴다.
+- `-3` 없이 멈추면 파일을 전혀 건드리지 않는다. `git status`에 `am 진행 중(AM 1/4 등)` + `working tree clean` + 충돌 파일 목록이 비어 있으면 "그 패치는 한 줄도 적용되지 않았다"는 뜻이다. `git am --abort` 후 `-3`으로 다시 하면 충돌 위치가 보인다.
+- 충돌 파일 목록: `git diff --name-only --diff-filter=U`(풀지 않은 파일 경로만). 고친 파일을 `git add`하면 목록에서 빠지고, 비면 `git am --continue`. `git status --short`에서는 `UU`(양쪽 수정)·`AA`(양쪽 추가)로 보인다.
+- 충돌 표시에 원본도 보이게: `git config merge.conflictStyle diff3`(git 2.35+는 `zdiff3`도 있음). `<<<<<<<`(내 쪽) / `|||||||`(원본) / `=======` / `>>>>>>>`(패치 쪽)로 나와, "원본→패치"로 패치가 실제 바꾸려는 것을, "원본→내 쪽"으로 받는 쪽만의 수정을 구분할 수 있다. 표시만 바꾸고 병합 결과에는 영향이 없다. git은 모르는 설정 키도 오류 없이 저장하므로 키 이름 오타는 조용히 무시된다.
+- 여러 패치 묶음이 서로 선행 관계면 묶음 단위로 순서대로 적용하고, 앞 묶음이 끝난 뒤 다음 묶음을 시작한다. 중간 상태(앞 패치만 들어간 상태)로 빌드·배포하면 안 되는 묶음은 적용 스크립트에서 선행 커밋 존재·패치 개수를 먼저 검사하게 하면 실수를 막을 수 있다.
+
 ## 핵심 코드
 ### 1) 넘길 커밋 찾기
 ```bash
@@ -92,6 +100,33 @@ git am --abort                          # 이번 am 전체를 실행 전으로
 git am --3way --keep-non-patch ~/Desktop/patches/*.patch   # 3-way로 충돌 표시를 만들어 적용
 git add <해결한 파일> && git am --continue
 git am --skip                           # 그 패치만 건너뜀
+```
+
+### 4-1) 3-way 충돌 해결 흐름
+```bash
+git am --abort                                   # -3 없이 멈춘 상태를 먼저 정리
+git cat-file -e <원본 기준 커밋> && echo "이력 있음"   # 없으면 -3 대신 apply --reject
+git config merge.conflictStyle diff3             # 이 저장소에만 적용, 되돌리기: --unset
+git am -3 --keep-non-patch "C:/<경로>/patches/"*.patch
+git diff --name-only --diff-filter=U             # 풀어야 할 파일 목록
+# 파일을 고친 뒤
+git add <파일> && git am --continue
+
+# 원본 이력이 없는 저장소
+git apply --reject "C:/<경로>/patches/0001-*.patch"   # 맞는 부분만 적용, 나머지는 *.rej
+```
+
+### 4-2) 적용 스크립트의 사전 검사 (bash)
+```bash
+#!/usr/bin/env bash
+set -e
+cd "${1:-.}"
+[ -z "$(git status --porcelain)" ] || { echo "커밋하지 않은 변경이 있음"; exit 1; }
+[ ! -d "$(git rev-parse --git-path rebase-apply)" ] || { echo "진행 중인 am/rebase 있음"; exit 1; }
+git log --format=%s -200 | grep -qF "<선행 패치 제목>" || { echo "선행 패치 먼저 적용"; exit 1; }
+DIR="$(dirname "$0")/patches"
+[ "$(ls "$DIR"/*.patch | wc -l)" -eq 4 ] || { echo "패치 개수 이상"; exit 1; }
+git am --keep-non-patch "$DIR"/*.patch
 ```
 
 ### 5) 임시 worktree에서 순서대로 실제 적용해 보기

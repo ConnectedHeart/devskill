@@ -2,7 +2,7 @@
 
 Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 정리한 노트입니다. 특정 회사나 프로젝트에 한정된 내용은 빼고, 다른 곳에서도 쓸 수 있는 내용만 담습니다.
 
-- 구조: `<분류>/<주제명>.md`
+- 구조: `<대분류>/<주제명>.md` 또는 `<대분류>/<중분류>/<주제명>.md`. 중분류는 한 대분류 안에서 좁은 주제의 노트가 여럿일 때만 만든다 (예: `네트워크/웹소켓/`). 목차에서는 `## 대분류` 아래 `### 중분류`로 묶는다.
 - 같은 주제는 한 파일에 계속 보탭니다.
 
 ## Git
@@ -12,7 +12,8 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [병합 커밋에서 사라진 코드 찾기](Git/병합 커밋에서 사라진 코드 찾기.md) — 같은 부모를 재병합해 비교, 지워짐 판정 기준, 복구와 이력 맞추기
 - [git commit --fixup과 autosquash](Git/git commit --fixup과 autosquash.md) — 뒤에 커밋이 쌓인 뒤 예전 커밋 고치기, amend와의 차이, 푸시 전에만 쓰는 이유
 - [푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기](Git/푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기.md) — force-push 대신 revert, 최신 순 revert, 함께 빼야 할 커밋·다른 저장소 영향, 빠지는 정의의 호출처 확인, worktree 작업과 긴 경로 오류
-- [format-patch와 am으로 커밋 옮기기와 적용 전 검증](Git/format-patch와 am으로 커밋 옮기기와 적용 전 검증.md) — git am·apply·cherry-pick 비교, --cherry-pick으로 안 넘어간 커밋 찾기, 패치 생성, am --keep-non-patch로 [태그] 유지, 커밋 제목 파일명, 선행 패치 순서, 임시 인덱스로 apply --cached --check, 일부 패치 제외 적용, 멈췄을 때 abort·3way·skip
+- [format-patch와 am으로 커밋 옮기기와 적용 전 검증](Git/format-patch와 am으로 커밋 옮기기와 적용 전 검증.md) — git am·apply·cherry-pick 비교, --cherry-pick으로 안 넘어간 커밋 찾기, 패치 생성, am --keep-non-patch로 [태그] 유지, 커밋 제목 파일명, 선행 패치 순서, 임시 인덱스로 apply --cached --check, 일부 패치 제외 적용, 멈췄을 때 abort·3way·skip, -3 원리와 fake ancestor, 멈춘 상태 읽기, conflictStyle diff3, 적용 스크립트 사전 검사
+- [git 한글 경로 깨짐과 스테이징 후 삭제된 파일](Git/git 한글 경로 깨짐과 스테이징 후 삭제된 파일.md) — core.quotepath, 터미널 인코딩, 인덱스에서 되살리기와 rm --cached, restore --staged
 
 ## 인증·보안
 - [Keycloak audience(aud)와 azp 검증](인증·보안/Keycloak audience(aud)와 azp 검증.md) — aud·azp의 의미, Audience 매퍼 추가, API 서버 검증과 적용 순서
@@ -38,6 +39,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [의존성 제거 후 다른 라이브러리 클래스 import로 깨지는 컴파일](Java·Spring/의존성 제거 후 다른 라이브러리 클래스 import로 깨지는 컴파일.md) — Tomcat Base64 import, Commons Codec·java.util.Base64로 교체
 - [iBATIS SqlMap 사용 시 주의점](Java·Spring/iBATIS SqlMap 사용 시 주의점.md) — resultClass 없는 select는 null, Map 키 대소문자, CDATA 안 주석, isNotEmpty 기본값, IN 절 1000개 분할
 - [요청 중 만든 임시 파일 정리](Java·Spring/요청 중 만든 임시 파일 정리.md) — finally에서 삭제, 확장자가 아닌 플래그로 판단, 스케줄러 정리 대상 확인, 동시 요청 파일명
+- [파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작](Java·Spring/파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작.md) — 폴더 없는 키 구조, exists·listFiles prefix·renameTo 비원자성, new File·경로 전달 연동이 깨지는 이유, 범위 GET 스트리밍, 리뷰용 grep
 - [서블릿 필터 URL 패턴과 한글 파일명 깨짐](Java·Spring/서블릿 필터 URL 패턴과 한글 파일명 깨짐.md) — *.do에만 걸린 인코딩 필터, 확장자 없는 주소의 multipart 깨짐, {id:.+} 경로 변수가 확장자를 먹는 문제
 
 ## DB·SQL
@@ -54,7 +56,11 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [WAF 웹 애플리케이션 방화벽과 오탐 대응](네트워크/WAF 웹 애플리케이션 방화벽과 오탐 대응.md) — L7 검사와 룰셋, 정상 입력 403 오탐 증상, 서버 로그에 요청이 없으면 의심, 예외 등록·인코딩
 - [HTTP Range 요청과 206 응답(미디어 재생 프록시)](네트워크/HTTP Range 요청과 206 응답(미디어 재생 프록시).md) — audio 태그의 구간 요청, iOS Safari 206 필수, 2단 프록시에서 상태코드·Content-Range 전달, RestTemplate 대신 직접 스트림 중계, 탭 즉시 재생
 - [SSH config Host 별칭과 hosts 파일의 차이](네트워크/SSH config Host 별칭과 hosts 파일의 차이.md) — git 원격의 짧은 호스트명 정체, SSH만 해석되어 ping은 안 됨, ssh -G 확인
-- [WebSocket 종료 코드로 끊긴 구간 찾기](네트워크/WebSocket 종료 코드로 끊긴 구간 찾기.md) — RFC 6455 종료 코드, 다단 중계에서 코드·사유 설계, 1회용 티켓, 프록시 Upgrade·유휴 타임아웃
+
+### 웹소켓
+- [WebSocket 기본 개념과 Java·브라우저 문법](네트워크/웹소켓/WebSocket 기본 개념과 Java·브라우저 문법.md) — HTTP와 차이, 핸드셰이크·세션·프레임·ping/pong 용어, JSR-356 생명주기 어노테이션, 연결별 인스턴스와 Spring 빈, Configurator 쿠키·Origin, 동기·비동기 전송, 브라우저 API, STOMP·SockJS 관계
+- [WebSocket 종료 코드로 끊긴 구간 찾기](네트워크/웹소켓/WebSocket 종료 코드로 끊긴 구간 찾기.md) — RFC 6455 종료 코드, 다단 중계에서 코드·사유 설계, 1회용 티켓, 프록시 Upgrade·유휴 타임아웃
+- [L4·L7 로드밸런서와 WebSocket 설정 요청](네트워크/웹소켓/L4·L7 로드밸런서와 WebSocket 설정 요청.md) — L4와 Nginx(L7·stream) 차이, Upgrade·유휴 타임아웃·최대 연결 시간·아웃바운드, ping 주기, 트래픽 추정, SockJS 폴백
 
 ## Windows·자동화
 - [작업 스케줄러로 스크립트 자동 실행](Windows·자동화/작업 스케줄러로 스크립트 자동 실행.md) — UAC 없이 관리자 스크립트 실행, idle 감지, 창 없는 실행
@@ -62,6 +68,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [PowerShell과 Git Bash 사용 시 주의점](Windows·자동화/PowerShell과 Git Bash 사용 시 주의점.md) — curl 별칭, CRLF 변환, 스크립트 인코딩, 1건 배열, 실행 정책 Process 범위, 사용자 환경 변수 상속, 함수·별칭 충돌, properties \u 이스케이프, 폴더 이동 막힘
 - [PowerShell 기초 문법(Java 개발자용)](Windows·자동화/PowerShell 기초 문법(Java 개발자용).md) — 변수 스코프, 단어 연산자, @ 기호, 객체 파이프, cmdlet 호출, 경로 명령
 - [PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시](Windows·자동화/PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시.md) — 창 없는 실행과 출력 리다이렉트, DoEvents, 프로세스 트리 종료, exe로 감싸도 소스가 보이는 이유
+- [HTML 파일을 작업 표시줄에 앱처럼 고정하기](Windows·자동화/HTML 파일을 작업 표시줄에 앱처럼 고정하기.md) — chrome --app 바로가기, PowerShell로 .lnk·아이콘 지정, 고정은 수동, 아이콘 캐시
 
 ## Claude Code
 - [Remote Control로 휴대폰에서 이어 쓰기](Claude Code/Remote Control로 휴대폰에서 이어 쓰기.md) — 동작 구조, 켜는 방법, 끊기는 조건, 다른 기기에 세션 제목이 보이는 이유
@@ -81,7 +88,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [iframe src 변경과 브라우저 방문 기록](기타/iframe src 변경과 브라우저 방문 기록.md) — 뒤로가기를 여러 번 눌러야 하는 원인, location.replace, history.length로 추적
 - [외부 검색엔진 연동과 검색 결과 권한 필터링](기타/외부 검색엔진 연동과 검색 결과 권한 필터링.md) — 색인용 뷰, 트리거 증분 색인, 권한 색인과 접근 식별자 목록 대조
 - [톰캣 폴더 교체 배포 스크립트 설계](기타/톰캣 폴더 교체 배포 스크립트 설계.md) — 준비·교체 분리, 준비 완료 표시 파일, mkdir 잠금, ps -o 함정, 기동 확인과 되돌리기
-- [목록 화면에서 선택 행과 전역 변수가 어긋나는 버그](기타/목록 화면에서 선택 행과 전역 변수가 어긋나는 버그.md) — 체크박스·Ctrl 클릭이 변수를 갱신하지 않아 다른 항목이 처리되는 원인, 수정과 재현 요령
+- [목록 화면에서 선택 행과 전역 변수가 어긋나는 버그](기타/목록 화면에서 선택 행과 전역 변수가 어긋나는 버그.md) — 체크박스·Ctrl 클릭이 변수를 갱신하지 않아 다른 항목이 처리되는 원인, 행 안 드롭다운이 선택 행을 고치는 경우, 수정과 재현 요령
 - [외부 응답을 화면에 넣는 방식(텍스트 노드와 innerHTML)](기타/외부 응답을 화면에 넣는 방식(텍스트 노드와 innerHTML).md) — 태그가 글자로 보이는 이유, 컨트롤 노출, data-* 속성과 경로별 필터
 - [nohup으로 jar 백그라운드 실행과 java 옵션 순서](기타/nohup으로 jar 백그라운드 실행과 java 옵션 순서.md) — -D·-cp는 -jar 앞에, -jar이면 -cp 무시, nohup 출력 처리와 기동 로그
 - [HWP·PDF 문서에서 텍스트 뽑기](기타/HWP·PDF 문서에서 텍스트 뽑기.md) — hwplib·pyhwp, pdftotext의 한글 CID 글꼴(poppler-data) 누락, 추출 결과의 한계
