@@ -12,12 +12,12 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [병합 커밋에서 사라진 코드 찾기](Git/병합 커밋에서 사라진 코드 찾기.md) — 같은 부모를 재병합해 비교, 지워짐 판정 기준, 복구와 이력 맞추기
 - [git commit --fixup과 autosquash](Git/git commit --fixup과 autosquash.md) — 뒤에 커밋이 쌓인 뒤 예전 커밋 고치기, amend와의 차이, 푸시 전에만 쓰는 이유
 - [푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기](Git/푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기.md) — force-push 대신 revert, 최신 순 revert, 함께 빼야 할 커밋·다른 저장소 영향, 빠지는 정의의 호출처 확인, worktree 작업과 긴 경로 오류
-- [format-patch와 am으로 커밋 옮기기와 적용 전 검증](Git/format-patch와 am으로 커밋 옮기기와 적용 전 검증.md) — git am·apply·cherry-pick 비교, --cherry-pick으로 안 넘어간 커밋 찾기, 패치 생성, am --keep-non-patch로 [태그] 유지, 커밋 제목 파일명, 선행 패치 순서, 임시 인덱스로 apply --cached --check, 일부 패치 제외 적용, 멈췄을 때 abort·3way·skip, -3 원리와 fake ancestor, 멈춘 상태 읽기, conflictStyle diff3, 적용 스크립트 사전 검사
+- [format-patch와 am으로 커밋 옮기기와 적용 전 검증](Git/format-patch와 am으로 커밋 옮기기와 적용 전 검증.md) — git am·apply·cherry-pick 비교, --cherry-pick으로 안 넘어간 커밋 찾기, 패치 생성, am --keep-non-patch로 [태그] 유지, 커밋 제목 파일명, 선행 패치 순서, 임시 인덱스로 apply --cached --check, 일부 패치 제외 적용, 멈췄을 때 abort·3way·skip, -3 원리와 fake ancestor, 멈춘 상태 읽기, conflictStyle diff3, 적용 스크립트 사전 검사, PowerShell 글롭 미전개, 빠진 패치 번호, stash 후 적용
 - [git 한글 경로 깨짐과 스테이징 후 삭제된 파일](Git/git 한글 경로 깨짐과 스테이징 후 삭제된 파일.md) — core.quotepath, 터미널 인코딩, 인덱스에서 되살리기와 rm --cached, restore --staged
 
 ## 인증·보안
 - [Keycloak audience(aud)와 azp 검증](인증·보안/Keycloak audience(aud)와 azp 검증.md) — aud·azp의 의미, Audience 매퍼 추가, API 서버 검증과 적용 순서
-- [1회용 코드 SSO와 refresh token 로테이션](인증·보안/1회용 코드 SSO와 refresh token 로테이션.md) — 토큰을 브라우저로 내보내지 않는 SSO 흐름, 오류 위치 구분, 로테이션 충돌
+- [1회용 코드 SSO와 refresh token 로테이션](인증·보안/1회용 코드 SSO와 refresh token 로테이션.md) — 토큰을 브라우저로 내보내지 않는 SSO 흐름, 오류 위치 구분, 기존 로그인 세션 대신 전용 세션 발급, 로테이션 충돌
 - [Keycloak 토큰 클레임(jti·sid·sub)과 로그아웃 범위](인증·보안/Keycloak 토큰 클레임(jti·sid·sub)과 로그아웃 범위.md) — 재발급 시 바뀌는 값, 세션 단위 로그아웃, 자체 검증 서버의 틈, 앱 로그아웃에 OIDC 로그아웃 붙이기와 응답별 처리
 - [토큰 보관 위치와 재발급 기준](인증·보안/토큰 보관 위치와 재발급 기준.md) — 메모리·쿠키·세션·DB 비교, 수명 절반 기준, 토큰 응답 캐시 금지, 쿠키 공유 범위
 - [Bearer 토큰과 세션 ID를 API 인증에 쓸 때의 차이](인증·보안/Bearer 토큰과 세션 ID를 API 인증에 쓸 때의 차이.md) — Authorization 헤더, invalid_grant 구분, 세션 ID 유출 범위, 전용 불투명 토큰
@@ -27,6 +27,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [비밀번호로 토큰을 발급하는 API를 추가할 때 점검할 것](인증·보안/비밀번호로 토큰을 발급하는 API를 추가할 때 점검할 것.md) — 세션 기반 토큰 수명, 옮길 보안 검사, 실패 로그, 평문 전송과 쿼리스트링 금지
 - [클라이언트가 만들 수 있는 값으로 권한을 판정할 때의 구멍](인증·보안/클라이언트가 만들 수 있는 값으로 권한을 판정할 때의 구멍.md) — 난독화 토큰 접두어 위조, X-Forwarded-For 조작과 구분자 주입, 서버 저장 속성·서명·접속 IP 비교, 예외 계정 허용 시 점검
 - [화면 제한과 서버 측 접근 확인(IDOR)](인증·보안/화면 제한과 서버 측 접근 확인(IDOR).md) — 화면 숨김은 보안이 아님, ID로 데이터를 꺼내는 API만 확인 필요, 저장 전 대상의 소유 판정, 클라이언트가 보낸 값 신뢰 금지
+- [인증 실패 응답 문구와 거부 사유 로그](인증·보안/인증 실패 응답 문구와 거부 사유 로그.md) — 판정 기준·설정 상태를 흘리는 문구, code 유지·message만 일반화, request 속성으로 사유 전달, 값 없는 사유 로그와 로그 위조 방지
 
 ## Java·Spring
 - [synchronized와 잠금 객체 나누기(lock striping)](Java·Spring/synchronized와 잠금 객체 나누기(lock striping).md) — 잠금 객체의 의미, 키 해시로 N개 잠금 고르기, JVM 한계
@@ -63,12 +64,13 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [L4·L7 로드밸런서와 WebSocket 설정 요청](네트워크/웹소켓/L4·L7 로드밸런서와 WebSocket 설정 요청.md) — L4와 Nginx(L7·stream) 차이, Upgrade·유휴 타임아웃·최대 연결 시간·아웃바운드, ping 주기, 트래픽 추정, SockJS 폴백
 
 ## Windows·자동화
-- [작업 스케줄러로 스크립트 자동 실행](Windows·자동화/작업 스케줄러로 스크립트 자동 실행.md) — UAC 없이 관리자 스크립트 실행, idle 감지, 창 없는 실행
+- [작업 스케줄러로 스크립트 자동 실행](Windows·자동화/작업 스케줄러로 스크립트 자동 실행.md) — UAC 없이 관리자 스크립트 실행, idle 감지, 창 없는 실행, 작업 잠시 끄기·다시 켜기
 - [예약 재시작과 전원 설정](Windows·자동화/예약 재시작과 전원 설정.md) — shutdown /g와 ARSO, 절전 방지 powercfg
 - [PowerShell과 Git Bash 사용 시 주의점](Windows·자동화/PowerShell과 Git Bash 사용 시 주의점.md) — curl 별칭, CRLF 변환, 스크립트 인코딩, 1건 배열, 실행 정책 Process 범위, 사용자 환경 변수 상속, 함수·별칭 충돌, properties \u 이스케이프, 폴더 이동 막힘
 - [PowerShell 기초 문법(Java 개발자용)](Windows·자동화/PowerShell 기초 문법(Java 개발자용).md) — 변수 스코프, 단어 연산자, @ 기호, 객체 파이프, cmdlet 호출, 경로 명령
 - [PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시](Windows·자동화/PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시.md) — 창 없는 실행과 출력 리다이렉트, DoEvents, 프로세스 트리 종료, exe로 감싸도 소스가 보이는 이유
 - [HTML 파일을 작업 표시줄에 앱처럼 고정하기](Windows·자동화/HTML 파일을 작업 표시줄에 앱처럼 고정하기.md) — chrome --app 바로가기, PowerShell로 .lnk·아이콘 지정, 고정은 수동, 아이콘 캐시
+- [작업 표시줄 아이콘에 계단식 메뉴 붙이기](Windows·자동화/작업 표시줄 아이콘에 계단식 메뉴 붙이기.md) — Windows 11에서 없어진 도구 모음, 기본 csc.exe로 WinForms 빌드, 폴더 구조를 메뉴로(번호 순서·구분선), 고정과 .gitignore
 
 ## Claude Code
 - [Remote Control로 휴대폰에서 이어 쓰기](Claude Code/Remote Control로 휴대폰에서 이어 쓰기.md) — 동작 구조, 켜는 방법, 끊기는 조건, 다른 기기에 세션 제목이 보이는 이유
@@ -76,7 +78,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [지침과 지식 노트를 로딩 시점에 맞게 배치하기](Claude Code/지침과 지식 노트를 로딩 시점에 맞게 배치하기.md) — 기능별 로딩 시점, rules의 paths 지정 노트, 남길 것과 뺄 것, 로드 확인 방법
 - [권한 규칙으로 특정 명령만 자동 허용하기](Claude Code/권한 규칙으로 특정 명령만 자동 허용하기.md) — ask가 allow보다 우선, 입력 검사 래퍼만 allow, 자동 허용을 거둘 때의 함정, 지침 파일 보호의 빈틈
 - [MCP 서버 도입 판단과 Serena(jdtls)](Claude Code/MCP 서버 도입 판단과 Serena(jdtls).md) — MCP 장점, 망 분리 환경에서 안 맞는 이유, 로컬 DB 읽기 전용 조건, jdtls·Serena와 grep 비교
-- [훅(hook) 작성 요령](Claude Code/훅(hook) 작성 요령.md) — 빠르게 끝내는 방법, 훅 출력이 컨텍스트로 들어가는 점, SubagentStart/Stop과 Stop 훅에 끊기는 백그라운드 서브에이전트
+- [훅(hook) 작성 요령](Claude Code/훅(hook) 작성 요령.md) — 빠르게 끝내는 방법, 훅 출력이 컨텍스트로 들어가는 점, SubagentStart/Stop과 Stop 훅에 끊기는 백그라운드 서브에이전트, PowerShell 5.1 입력 인코딩(CP949)으로 JSON 해석 실패
 - [예약 작업 무인 실행과 권한 규칙](Claude Code/예약 작업 무인 실행과 권한 규칙.md) — 고정 스크립트와 좁은 허용 규칙, 놓친 날 보충 장치의 구멍(UserPromptSubmit 훅으로 무인 세션 구분), 권한 요청 대기로 멈춘 실행, 목차 기반 요약
 - [로컬 환경 전환 불가 메시지](Claude Code/로컬 환경 전환 불가 메시지.md) — 메시지가 나오는 경우, + 버튼 세션은 실제로 로컬 실행, 재시작·폴더 재지정·정책 확인 순서
 - [Agent Skills SKILL.md 위치(Claude Code와 Codex)](Claude Code/Agent Skills SKILL.md 위치(Claude Code와 Codex).md) — SKILL.md 표준, .claude/skills와 .agents/skills 차이, AGENTS.md에 핵심 규칙 두기, 규칙·절차 분리 기준, CLAUDE.md import, 폴더 링크
@@ -88,7 +90,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [iframe src 변경과 브라우저 방문 기록](기타/iframe src 변경과 브라우저 방문 기록.md) — 뒤로가기를 여러 번 눌러야 하는 원인, location.replace, history.length로 추적
 - [외부 검색엔진 연동과 검색 결과 권한 필터링](기타/외부 검색엔진 연동과 검색 결과 권한 필터링.md) — 색인용 뷰, 트리거 증분 색인, 권한 색인과 접근 식별자 목록 대조
 - [톰캣 폴더 교체 배포 스크립트 설계](기타/톰캣 폴더 교체 배포 스크립트 설계.md) — 준비·교체 분리, 준비 완료 표시 파일, mkdir 잠금, ps -o 함정, 기동 확인과 되돌리기
-- [목록 화면에서 선택 행과 전역 변수가 어긋나는 버그](기타/목록 화면에서 선택 행과 전역 변수가 어긋나는 버그.md) — 체크박스·Ctrl 클릭이 변수를 갱신하지 않아 다른 항목이 처리되는 원인, 행 안 드롭다운이 선택 행을 고치는 경우, 수정과 재현 요령
+- [목록 화면에서 선택 행과 전역 변수가 어긋나는 버그](기타/목록 화면에서 선택 행과 전역 변수가 어긋나는 버그.md) — 체크박스·Ctrl 클릭이 변수를 갱신하지 않아 다른 항목이 처리되는 원인, 행 안 드롭다운이 선택 행을 고치는 경우, 마우스로는 안 나고 키보드·selectOption에서만 나는 이유, 수정과 재현 요령
 - [외부 응답을 화면에 넣는 방식(텍스트 노드와 innerHTML)](기타/외부 응답을 화면에 넣는 방식(텍스트 노드와 innerHTML).md) — 태그가 글자로 보이는 이유, 컨트롤 노출, data-* 속성과 경로별 필터
 - [nohup으로 jar 백그라운드 실행과 java 옵션 순서](기타/nohup으로 jar 백그라운드 실행과 java 옵션 순서.md) — -D·-cp는 -jar 앞에, -jar이면 -cp 무시, nohup 출력 처리와 기동 로그
 - [HWP·PDF 문서에서 텍스트 뽑기](기타/HWP·PDF 문서에서 텍스트 뽑기.md) — hwplib·pyhwp, pdftotext의 한글 CID 글꼴(poppler-data) 누락, 추출 결과의 한계
@@ -98,9 +100,10 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [docker exec 창을 닫아도 컨테이너 안 프로세스가 남는 이유](기타/docker exec 창을 닫아도 컨테이너 안 프로세스가 남는 이유.md) — -t 가상 터미널과 containerd-shim, 신호가 전달되지 않는 구조, -i와 EOF 감시로 tail 정리, ServerAliveInterval
 - [브라우저 마이크 녹음 기능을 붙일 때 확인할 것](기타/브라우저 마이크 녹음 기능을 붙일 때 확인할 것.md) — https 보안 컨텍스트, 앱 웹뷰 권한, 화면 이탈 시 마이크 해제, 다단 WebSocket 중계와 단기 티켓, 프록시 Upgrade·고정 세션
 - [HTML select 펼친 목록에 CSS가 안 먹는 이유](기타/HTML select 펼친 목록에 CSS가 안 먹는 이유.md) — 네이티브 옵션 목록, jQuery Mobile 자체 목록, 둥근 팝업에서 글자 잘림
-- [시간대 오프셋 형식 불일치로 생기는 기간 판정 오류](기타/시간대 오프셋 형식 불일치로 생기는 기간 판정 오류.md) — 형식이 다르면 조용히 UTC 반환, 시차만큼 기간 밖 판정, 정규화와 대조 테스트
+- [시간대 오프셋 형식 불일치로 생기는 기간 판정 오류](기타/시간대 오프셋 형식 불일치로 생기는 기간 판정 오류.md) — 형식이 다르면 조용히 UTC 반환, 시차만큼 기간 밖 판정, 정규화와 대조 테스트, 같은 함수의 다른 호출 경로 점검, 404·403으로 나타나는 경우
 - [Chrome unload 이벤트 폐지와 Permissions policy 경고](기타/Chrome unload 이벤트 폐지와 Permissions policy 경고.md) — 경고의 의미, 라이브러리 출처 찾기, pagehide·visibilitychange·sendBeacon 대체
 - [audio 태그로 mp4 재생과 MIME 타입](기타/audio 태그로 mp4 재생과 MIME 타입.md) — audio/mp4 값, 206 응답, 코덱별 재생 차이, 허용 목록 한 곳 관리, 전사 서버 지원·용량
 - [외부 API가 빈 응답을 줄 때 원인 가르기](기타/외부 API가 빈 응답을 줄 때 원인 가르기.md) — 공통 실패 안내의 원인 분리, 테스트 요청의 실제 재현 여부, 응답 시간 단서, 입력 조합 표, 화면 값과 저장 값 차이
 - [끼워 넣은 span이 주변 글꼴을 따르지 않는 이유](기타/끼워 넣은 span이 주변 글꼴을 따르지 않는 이유.md) — 태그 전역 CSS가 상속을 막는 원리, 표시 클래스에만 inherit
 - [화면 안내 메시지 설계(토스트와 알림창, 중복 알림)](기타/화면 안내 메시지 설계(토스트와 알림창, 중복 알림).md) — 성공은 토스트·실패는 알림창, 하위 함수는 결과만 반환, 결과 확인 후 상태 변경, 일괄 처리 안내
+- [Playwright 화면 자동화에서 자주 막히는 지점](기타/Playwright 화면 자동화에서 자주 막히는 지점.md) — 숫자로 시작하는 id 선택자, window.event 핸들러와 실제 클릭, 다시 그려지는 목록, 확인 창 골라 답하기, 대기 시간, 건별 예외와 정리, 네트워크 재연결, 셸로 넣은 정규식 깨짐

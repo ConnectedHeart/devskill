@@ -1,6 +1,6 @@
 # format-patch와 am으로 커밋 옮기기와 적용 전 검증
 
-> 분류: Git · 최근 갱신: 2026-10-27
+> 분류: Git · 최근 갱신: 2026-10-28
 
 ## 한 줄 요약
 다른 브랜치나 다른 저장소로 커밋 몇 개를 넘길 때는 `git format-patch`로 패치 파일을 만들고 받는 쪽에서 `git am`으로 적용한다. 적용 전에는 체크아웃 없이 임시 인덱스로 `git apply --cached --check`를 돌려 충돌 여부를 미리 본다.
@@ -143,6 +143,14 @@ git worktree remove --force C:/wt-try
 git am (Get-ChildItem "<경로>\patches\*.patch").FullName
 git am (Get-ChildItem "<경로>\patches\*.patch" | Where-Object Name -notlike '0001*' | Sort-Object Name).FullName
 
+# PowerShell 은 *.patch 를 펼쳐 주지 않는다: 이름순으로 정렬해 전체 경로 목록을 넘긴다
+git am --3way (Get-ChildItem "<경로>\patches\*.patch" | Sort-Object Name).FullName
+
+# 작업 트리에 커밋하지 않은 설정 파일 변경이 있으면 치워 두고 적용
+git stash
+git am --3way (Get-ChildItem "<경로>\patches\*.patch" | Sort-Object Name).FullName
+git stash pop
+
 # 체크아웃 없이 확인 (PowerShell)
 $env:GIT_INDEX_FILE = "$env:TEMP\idx"
 git read-tree release
@@ -156,6 +164,9 @@ Remove-Item Env:GIT_INDEX_FILE; Remove-Item "$env:TEMP\idx"
 - 실행 전에 작업 폴더에 커밋하지 않은 변경이 없어야 한다.
 - Git Bash에서 `git am`에 `/c/...` 형태 경로를 주면 파일을 못 여는 경우가 있다. `C:/...` 형식으로 준다.
 - 커밋 하나를 통째로 옮기는 용도다. 일부만 필요하면 `git apply` 후 직접 커밋한다.
+- PowerShell에서 `git am patches/*.patch`라고 쓰면 글롭이 펼쳐지지 않고 글자 그대로 넘어가 파일을 못 찾는다. `Get-ChildItem ... | Sort-Object Name`으로 목록을 만들어 넘기고, 이름순이 적용 순서와 같은지 확인한다.
+- 받은 패치 묶음의 안내 문서(README)와 실제 파일 수를 먼저 대조한다. 번호가 빠져 있으면(예: 0001·0003·0004만 있음) 빠진 패치를 전제로 만든 뒤 패치가 충돌하거나, 적용은 돼도 기능이 빠진다.
+- 패치가 바꾸는 파일이 작업 트리에서 수정 중이면 `git am`이 멈춘다. `git stash`로 치우고 적용한 뒤 `git stash pop`으로 되돌린다.
 
 ## 참고
 - Git 문서: git-format-patch, git-am, git-apply(--cached --check), git-log(--cherry-pick), git-read-tree, GIT_INDEX_FILE

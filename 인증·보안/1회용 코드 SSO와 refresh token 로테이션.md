@@ -1,6 +1,6 @@
 # 1회용 코드 SSO와 refresh token 로테이션
 
-> 분류: 인증·보안 · 최근 갱신: 2026-10-27
+> 분류: 인증·보안 · 최근 갱신: 2026-10-28
 
 ## 한 줄 요약
 다른 시스템을 로그인된 상태로 팝업에 띄울 때는 토큰을 브라우저로 내보내지 않고 서버끼리 1회용 코드를 주고받으며, refresh token을 요청마다 갱신하면 동시 요청에서 실패할 수 있다.
@@ -23,6 +23,19 @@
 | B가 "토큰 교환 실패"(502 등) | A → B 호출은 성공. B가 받은 토큰을 인증 서버에서 교환하다 실패 |
 
 토큰 교환 실패의 흔한 원인은 realm/client 불일치, Token Exchange 권한 미설정, B의 client 인증 정보 오류, B → 인증 서버 연결 문제다. 이때 A의 코드를 고칠 것은 없고, B 로그에 찍힌 인증 서버의 실제 오류 응답(`invalid_client`, `access_denied` 등)을 봐야 한다.
+
+### 티켓 발급 때 넘기는 자격증명: 기존 세션 대신 전용 세션
+A가 자체 세션(쿠키 값)으로 인증하는 구조라면, 티켓 발급 때 B에 넘길 자격증명을 "사용자의 브라우저 로그인 세션 ID를 B용 모양으로 감싼 값"으로 만들기 쉽다. 이렇게 하면 문제가 생긴다.
+- **위조와 구별할 수 없다.** 감싸는 규칙이 소스에 있고 세션 ID는 브라우저 개발자도구에서 보이므로, 일반 사용자도 자기 쿠키를 같은 모양으로 감싸 "B 관리자 전용 API"를 부를 수 있다. 서버가 이를 막으려고 "B가 등록한 세션만 인정" 같은 검사를 넣으면, 이번에는 정상 SSO 토큰까지 같은 이유로 거부된다(403).
+- **로그아웃이 번진다.** B가 받은 토큰으로 로그아웃 API를 부르면 토큰이 가리키는 세션, 즉 사용자의 A 화면 세션이 지워져 A에서도 로그아웃된다.
+- **수명이 묶인다.** A에서 로그아웃하거나 세션이 만료되면 B가 쥔 토큰도 함께 무효가 된다.
+
+해결은 **티켓을 발급할 때 B 전용 세션을 새로 만들어 그 세션의 토큰을 넘기는 것**이다.
+- 새 세션 ID는 서버끼리만 오가고 브라우저로 내려가지 않으므로 사용자가 만들어 낼 수 없다. 세션에 "B용으로 서버가 발급함" 표시를 함께 저장하면 방어 검사를 그대로 둘 수 있다.
+- 새 행을 추가만 하므로 기존 화면 세션과 쿠키는 그대로다. 중복 로그인 제한이 "로그인 기록"으로 동작한다면 이 발급이 그 기록을 건드리지 않는지 확인한다.
+- B가 티켓 발급을 거절하면(권한 없음 등) 방금 만든 세션을 바로 지운다.
+- B의 로그아웃은 B 세션만 지운다. B가 로그아웃 API를 부르지 않으면 세션 수명이 지날 때까지 남으므로 수명을 짧게 두거나 정리 작업 대상에 넣는다.
+- 클릭할 때마다 세션 행이 하나씩 생긴다는 점을 운영에 알려 둔다.
 
 ### refresh token 로테이션과 동시 요청
 - 로테이션이 켜져 있으면(Keycloak의 "Revoke Refresh Token") refresh token은 한 번 쓰면 폐기되고 새 것으로 바뀐다.
@@ -98,6 +111,36 @@ fetch('/sso/b-ticket', { method: 'POST', credentials: 'same-origin' })
       alert(d.message);                            // B가 준 오류 메시지 표시
     }
   });
+```
+
+### 5-1) A 서버: 티켓 발급용 전용 세션 만들기 (기존 세션을 감싸지 않음)
+```java
+// 바꿔야 할 곳: 세션 테이블·컬럼 이름, 토큰 암호화 방식, B 티켓 API 주소
+String ssoSessionId = UUID.randomUUID().toString();                // 브라우저로 내려가지 않는 새 ID
+jdbc.update("INSERT INTO user_session (session_id, user_id, issued_for, expires_at) VALUES (?, ?, 'b-console', ?)",
+    ssoSessionId, loginUser.getUserId(), new Timestamp(System.currentTimeMillis() + 60 * 60_000L));
+String token = tokenCipher.encrypt(ssoSessionId);                 // 이 세션만 가리키는 토큰
+
+try {
+    String code = requestTicket(token);                           // 위 1)처럼 Bearer 로 B 티켓 API 호출
+    if (code == null) {                                           // B가 거절(권한 없음 등)
+        jdbc.update("DELETE FROM user_session WHERE session_id = ?", ssoSessionId);
+        return error("B 에서 거절함");
+    }
+    return ok(code);
+} catch (RuntimeException e) {
+    jdbc.update("DELETE FROM user_session WHERE session_id = ?", ssoSessionId);
+    throw e;
+}
+```
+
+### 5-2) API 서버: 관리자 전용 API는 "서버가 발급한 세션"만 인정
+```java
+// 토큰 모양만 보지 않고, 가리키는 세션이 B용으로 서버가 발급한 것인지 DB 로 확인
+List<String> rows = jdbc.queryForList(
+    "SELECT issued_for FROM user_session WHERE session_id = ? AND expires_at > ?",
+    String.class, sessionId, new Timestamp(System.currentTimeMillis()));
+boolean consoleSession = rows.size() == 1 && "b-console".equals(rows.get(0));   // 없거나 만료면 거부
 ```
 
 ### 6) 인증 서버 호출에 짧은 타임아웃

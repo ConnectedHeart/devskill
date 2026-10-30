@@ -1,6 +1,6 @@
 # 훅(hook) 작성 요령
 
-> 분류: Claude Code · 최근 갱신: 2026-10-27
+> 분류: Claude Code · 최근 갱신: 2026-10-28
 
 ## 한 줄 요약
 훅은 질문·답변·세션 시작마다 실행되므로 "할 일이 없을 때 얼마나 빨리 끝나는가"가 가장 중요하고, 훅의 출력은 Claude의 컨텍스트로 들어간다.
@@ -33,6 +33,12 @@
 - 비정상 종료로 표시가 남을 수 있으니 일정 시간(예: 60분)이 지난 표시는 무시한다.
 - 질문 창(사용자 선택 대기)을 띄운 채 답이 없으면 Stop 훅이 돌지 않아 "답변 중" 표시가 계속 남는다. 여러 세션이 표시를 공유하는 구조라면 다른 세션의 정리도 그만큼 밀린다.
 - 무거운 점검(전체 문서 검사 등)은 매번 돌리지 말고, 바뀐 파일만 대상으로 좁히거나 매일 바뀌는 파일을 대상에서 빼면 실제 시간이 가장 많이 준다.
+
+### Windows PowerShell 5.1에서 훅 입력(JSON)을 읽을 때 인코딩
+- 훅 입력 JSON은 UTF-8로 표준 입력에 들어온다. 그런데 Windows PowerShell 5.1은 표준 입력을 시스템 기본 코드 페이지(한국어 Windows는 CP949)로 읽는다.
+- 짧은 영어·한글 프롬프트는 우연히 해석될 수 있지만, 한글이 많은 긴 프롬프트(예약 작업 프롬프트 등)는 글자가 깨져 `ConvertFrom-Json`이 실패한다.
+- 해석 실패를 "원문 문자열 전체로 비교"로 처리하면, 원문은 `{`로 시작하므로 "프롬프트가 `<scheduled-task`로 시작하면 건너뛴다" 같은 조건이 늘 거짓이 된다. 그 결과 무인 예약 작업 세션이 사람용 안내를 가로채고 "오늘 확인함" 표시까지 남겨, 정작 사람 세션에는 안내가 뜨지 않는다.
+- 해결: 입력을 읽기 전에 `[Console]::InputEncoding`을 UTF-8로 지정하고, 해석이 실패해도 원문에서 `"prompt":"<표시>` 문자열을 찾아 판정하는 대비책을 둔다. 고친 뒤에는 실제 긴 한글 입력, 깨진 JSON, 일반 프롬프트 세 가지로 직접 실행해 확인한다.
 
 ### 설정에 넣는 명령
 - JSON 안에 긴 bash 한 줄을 직접 넣으면 따옴표와 역슬래시 이스케이프 때문에 다루기 어렵다. 스크립트 파일로 빼고 설정에는 실행 명령만 둔다.
@@ -110,6 +116,28 @@ dir=~/.claude/mycheck/active
 find "$dir" -type f -mmin +60 -delete 2>/dev/null     # 비정상 종료로 남은 오래된 표시 무시
 [ -n "$(ls -A "$dir" 2>/dev/null)" ] && exit 0         # 서브에이전트가 아직 돌고 있음
 bash ~/.claude/mycheck/cleanup.sh                      # 실제 정리 작업
+```
+
+### 3-1) PowerShell 5.1 훅 스크립트: UTF-8로 입력 읽기와 예약 작업 건너뛰기
+```powershell
+# check.ps1 — 바꿔야 할 곳: 건너뛸 프롬프트 표시 문자열
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8     # 5.1 기본(CP949)으로 읽으면 한글이 깨짐
+$raw = [Console]::In.ReadToEnd()
+$prompt = $null
+try { $prompt = ($raw | ConvertFrom-Json).prompt } catch { }
+
+# 해석에 실패해도 원문에서 표시를 찾아 판정한다
+$isScheduled = ($prompt -and $prompt.StartsWith('<scheduled-task')) -or
+               ($raw -match '"prompt"\s*:\s*"<scheduled-task')
+if ($isScheduled) { exit 0 }                                 # 무인 세션에는 안내하지 않고 표시도 남기지 않음
+
+# ... 사람 세션용 점검과 안내 출력 ...
+```
+```bash
+# 세 가지 입력으로 확인
+printf '%s' '{"prompt":"<scheduled-task name=\"x\">한글이 많은 긴 프롬프트..."}' | powershell -NoProfile -File check.ps1   # 출력 없음
+printf '%s' '{"prompt":"<scheduled-task 깨진 JSON'                                | powershell -NoProfile -File check.ps1   # 출력 없음
+printf '%s' '{"prompt":"안녕"}'                                                  | powershell -NoProfile -File check.ps1   # 안내 출력
 ```
 
 ### 4) 조건별로 직접 실행해 출력과 시간 확인
