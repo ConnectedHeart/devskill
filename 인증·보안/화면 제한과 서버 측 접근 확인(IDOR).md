@@ -1,6 +1,6 @@
 # 화면 제한과 서버 측 접근 확인(IDOR)
 
-> 분류: 인증·보안 · 최근 갱신: 2026-10-27
+> 분류: 인증·보안 · 최근 갱신: 2026-10-30
 
 ## 한 줄 요약
 "이 버튼은 작성 화면에서만 보인다"는 보안이 아니다. 클라이언트가 보낸 ID로 서버가 파일·데이터를 꺼내 주는 API는 서버에서 "요청자가 이 대상을 볼 수 있는가"를 확인해야 한다.
@@ -20,6 +20,12 @@
 - 더 맞는 기준: "요청자가 그 대상을 열람할 권한이 있는가". 결재자·수신자도 쓰는 기능이 되면 기존 열람 권한 판정을 재사용하는 편이 맞다.
 - **아직 저장되지 않은 대상**은 작성자 정보가 DB에 없어 소유 판정이 실패하기 쉽다. "정보가 없으면 통과"로 바꾸면 남의 작성 중 데이터와 존재하지 않는 ID까지 통과하므로 위험하다. 대신 비교할 수 있는 다른 값(예: 첨부를 올린 사용자)을 쓰거나, 임시 ID를 발급할 때 소유자를 기록한다.
 - 비교에 쓰는 값이 **클라이언트가 보낸 값을 그대로 저장한 것**이면 조작될 수 있다. 서버가 로그인 정보로 채우는 값인지 확인한다.
+
+### 권한은 ID로 판정하고 파일은 경로로 고르는 다운로드
+- 첨부 다운로드 주소가 문서 ID와 파일 경로(`filePath`)를 함께 받는 구조가 흔하다. 권한은 문서 ID로 보는데 실제로 내려줄 파일은 경로로 고르면 구멍이 생긴다. 볼 수 있는 문서의 ID에 다른 문서의 경로를 붙여도 받아진다.
+- 문서 ID 같은 권한 판정용 파라미터를 빼면 판정 분기를 아예 건너뛰는 구현도 있다. "값이 있으면 검사"는 "값이 없으면 통과"와 같다.
+- 판정 결과를 보지 않는 다른 분기(미리보기·뷰어 변환 등)가 있는지도 확인한다.
+- 고치는 방향: 클라이언트에서 받는 것은 `문서 ID + 첨부 순번`뿐이다. 서버가 그 둘로 첨부 행을 찾아 경로와 파일 이름을 DB에서 읽는다. 권한 판정은 같은 ID로 한다. 첨부를 찾는 데 필요 없는 상위 ID(게시판 ID 등)가 권한 판정에 필요하면, 클라이언트에서 받지 말고 서버가 조회한다. 받더라도 조회한 값과 같은지만 확인한다.
 
 ## 핵심 코드
 ### 1) 컨트롤러: ID로 꺼내기 전에 열람 권한 확인
@@ -60,7 +66,25 @@ Integer n = jdbc.queryForObject(
 boolean allowed = n != null && n > 0;
 ```
 
-### 4) 다른 사용자로 직접 호출해 확인
+### 4) 첨부 다운로드: ID와 순번만 받고 경로는 서버가 찾기
+```java
+@GetMapping("/items/attach/download")
+public void download(@RequestParam String itemId, @RequestParam int seq,
+                     HttpSession session, HttpServletResponse res) throws IOException {
+    String userId = (String) session.getAttribute("loginUserId");
+    if (userId == null) { res.sendError(401); return; }
+    Item item = itemService.findById(itemId);                 // 상위 ID(boardId)는 서버가 조회
+    if (item == null || !accessService.canRead(userId, item.getBoardId(), itemId)) {
+        res.sendError(404); return;                           // 없음·권한 없음을 같은 응답으로
+    }
+    Attachment a = attachService.find(itemId, seq);           // 경로·이름은 DB에서
+    if (a == null) { res.sendError(404); return; }
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    fileSender.send(res, a.getStoredPath(), a.getFileName());  // 클라이언트가 보낸 경로는 쓰지 않음
+}
+```
+
+### 5) 다른 사용자로 직접 호출해 확인
 ```bash
 # 권한 없는 사용자의 세션 쿠키로 남의 문서 ID를 넣어 호출 → 403(또는 404)이어야 정상
 curl -i -b "<세션 쿠키 이름>=<권한 없는 사용자 세션>" "https://example.com/docs/<남의 문서 ID>/ai-summary"
