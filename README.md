@@ -7,7 +7,8 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 
 ## Git
 - [git bundle 생성과 병합](Git/git bundle 생성과 병합.md) — 저장소를 파일 하나로 옮기는 방법, FETCH_HEAD로 병합하는 이유, --no-ff
-- [cherry-pick 충돌 해결과 검증](Git/cherry-pick 충돌 해결과 검증.md) — 선행 커밋 찾기와 순서, 충돌이 많은 이유 3가지, 선행 커밋 필요와 옆줄 겹침 구분, worktree 시험, 공백만 다른 충돌, 검증 절차
+- [cherry-pick 충돌 해결과 검증](Git/cherry-pick 충돌 해결과 검증.md) — 선행 커밋 찾기와 순서, 충돌이 많은 이유 3가지, 선행 커밋 필요와 옆줄 겹침 구분, worktree·merge-tree 시험, 연속 작업 묶음 중간 시점 결함, push 전 rebase --onto로 하나 빼기, 공백만 다른 충돌, 검증 절차
+- [git stash 적용 충돌 알아보기와 오래된 stash 정리](Git/git stash 적용 충돌 알아보기와 오래된 stash 정리.md) — Stashed changes 표시와 MERGE_HEAD 부재, reflog로 stash 경위 추적, HEAD 쪽 해결, 보관 후 drop
 - [브랜치 간 미반영 커밋 찾기(작성자·커미터·patch-id)](Git/브랜치 간 미반영 커밋 찾기(작성자·커미터·patch-id).md) — 작성일·커밋일과 --since, 작성자·커미터 차이, 여러 표기 매핑, 역병합 구조에서 --cherry-pick이 짝을 못 찾는 이유
 - [병합 커밋에서 사라진 코드 찾기](Git/병합 커밋에서 사라진 코드 찾기.md) — 같은 부모를 재병합해 비교, 지워짐 판정 기준, 복구와 이력 맞추기
 - [git commit --fixup과 autosquash](Git/git commit --fixup과 autosquash.md) — 뒤에 커밋이 쌓인 뒤 예전 커밋 고치기, amend와의 차이, 푸시 전에만 쓰는 이유
@@ -35,7 +36,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [외부 API 판정 결과의 로컬 캐시 설계](Java·Spring/외부 API 판정 결과의 로컬 캐시 설계.md) — 성공·실패 캐시, request 속성과의 역할 구분, 다중 서버 한계
 - [Future로 외부 호출 전체 시간 제한하기](Java·Spring/Future로 외부 호출 전체 시간 제한하기.md) — connect/read 타임아웃의 빈틈, ExecutionException 벗기기, cancel의 한계
 - [RestTemplate JSON 호출의 숫자 타입과 타임아웃](Java·Spring/RestTemplate JSON 호출의 숫자 타입과 타임아웃.md) — Gson·json-simple·Jackson의 타입 차이, 전용 RestTemplate
-- [코드 점검에서 자주 나오는 결함 패턴](Java·Spring/코드 점검에서 자주 나오는 결함 패턴.md) — 순회 중 삭제, 예외 삼킴, 확장자 판별, 프록시를 거치지 않는 내부 호출, 문자열 == 비교, null 확인 순서, 단위 계산 인덱스, 검증 뒤 return 누락
+- [코드 점검에서 자주 나오는 결함 패턴](Java·Spring/코드 점검에서 자주 나오는 결함 패턴.md) — 순회 중 삭제, 예외 삼킴, 확장자 판별, 프록시를 거치지 않는 내부 호출, 문자열 == 비교, null 확인 순서, 단위 계산 인덱스, 루프 안 파라미터 재대입과 초기값 없는 선언, 래퍼의 인자 전달 누락, 검증 뒤 return 누락
 - [RequestBody와 요청 파라미터(getParameterNames)의 차이](Java·Spring/RequestBody와 요청 파라미터(getParameterNames)의 차이.md) — JSON 본문과 쿼리스트링·폼의 구분, 엄격한 파라미터 인터셉터, 쿼리스트링 비밀번호 로그
 - [의존성 제거 후 다른 라이브러리 클래스 import로 깨지는 컴파일](Java·Spring/의존성 제거 후 다른 라이브러리 클래스 import로 깨지는 컴파일.md) — Tomcat Base64 import, Commons Codec·java.util.Base64로 교체
 - [iBATIS SqlMap 사용 시 주의점](Java·Spring/iBATIS SqlMap 사용 시 주의점.md) — resultClass 없는 select는 null, Map 키 대소문자와 DB별 매퍼 한쪽 누락·기계적 대조, 들어올 수 없는 값과 비교해 죽은 isEqual 블록, CDATA 안 주석, isNotEmpty 기본값, IN 절 1000개 분할
@@ -43,6 +44,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [요청 중 만든 임시 파일 정리](Java·Spring/요청 중 만든 임시 파일 정리.md) — finally에서 삭제, 확장자가 아닌 플래그로 판단, 스케줄러 정리 대상 확인, 동시 요청 파일명
 - [파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작](Java·Spring/파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작.md) — 폴더 없는 키 구조, exists·listFiles prefix·renameTo 비원자성, new File·경로 전달 연동이 깨지는 이유, 범위 GET 스트리밍, 리뷰용 grep
 - [서블릿 필터 URL 패턴과 한글 파일명 깨짐](Java·Spring/서블릿 필터 URL 패턴과 한글 파일명 깨짐.md) — *.do에만 걸린 인코딩 필터, 확장자 없는 주소의 multipart 깨짐, {id:.+} 경로 변수가 확장자를 먹는 문제
+- [Spring에 선택적 두 번째 데이터소스 추가하기](Java·Spring/Spring에 선택적 두 번째 데이터소스 추가하기.md) — JNDI와 properties 직접 연결, 빈 기본값·lazy-init·autowire-candidate로 기동 유지, URL 없으면 기존 경로, DB 종류 메타데이터 판별, 트랜잭션 밖 직접 JDBC
 
 ## DB·SQL
 - [AUTO_INCREMENT가 건너뛰며 증가하는 이유](DB·SQL/AUTO_INCREMENT가 건너뛰며 증가하는 이유.md) — auto_increment_increment와 Galera, LAST_INSERT_ID와 MAX의 차이
@@ -52,6 +54,8 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [DB별 SQL에서 조용히 틀리는 조건식 패턴](DB·SQL/DB별 SQL에서 조용히 틀리는 조건식 패턴.md) — Oracle || 와 - 우선순위, MySQL IN 안의 OR, BETWEEN 인자 순서, 날짜에 숫자 빼기, 시각 붙은 날짜 = 비교, ORDER BY 없는 순서 의존
 - [MySQL 조인 컬럼 문자셋 불일치로 인덱스를 못 쓰는 문제](DB·SQL/MySQL 조인 컬럼 문자셋 불일치로 인덱스를 못 쓰는 문제.md) — utf8mb4·utf8 조인의 EXPLAIN 증상, CONVERT 변형으로 미리 재기, 콜레이션까지 맞춘 ALTER 생성, 데이터 있을 때 잠금·인덱스 길이·사전 점검, 변환 후 통계와 ANALYZE
 - [Oracle DB 링크와 원격 객체 존재 확인](DB·SQL/Oracle DB 링크와 원격 객체 존재 확인.md) — 링크 존재·접속·원격 객체·읽기 권한 단계별 확인, 단계별 ORA 오류 의미, 시노님, 링크 세션 닫기
+- [페이징 목록 쿼리가 느린 원인과 개선 측정](DB·SQL/페이징 목록 쿼리가 느린 원인과 개선 측정.md) — 쓰지 않는 1:N 조인과 DISTINCT, 카운트 중복, 계산값 정렬, 인덱스를 고르지 않는 경우, STRAIGHT_JOIN 실험, 2단계 페이징 위험, 결과 해시로 전후 비교
+- [JDBC batch와 다건 INSERT, 일부 실패 처리](DB·SQL/JDBC batch와 다건 INSERT, 일부 실패 처리.md) — 세 방식의 왕복·실패 동작, 드라이버별 batch 효과(rewriteBatchedStatements, 프로시저), 문장 단위 롤백과 커밋 한 번, 반으로 나눠 재시도, Oracle INSERT ALL 시퀀스 문제, 다건 프로시저 요청
 
 ## 네트워크
 - [LDAP 연결 끊김 원인 구분](네트워크/LDAP 연결 끊김 원인 구분.md) — 오류 메시지별 의미, TTL 비교로 끊은 주체 찾기
@@ -64,6 +68,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [WebSocket 기본 개념과 Java·브라우저 문법](네트워크/웹소켓/WebSocket 기본 개념과 Java·브라우저 문법.md) — HTTP와 차이, 핸드셰이크·세션·프레임·ping/pong 용어, JSR-356 생명주기 어노테이션, 연결별 인스턴스와 Spring 빈, Configurator 쿠키·Origin, 동기·비동기 전송, 브라우저 API, STOMP·SockJS 관계
 - [WebSocket 종료 코드로 끊긴 구간 찾기](네트워크/웹소켓/WebSocket 종료 코드로 끊긴 구간 찾기.md) — RFC 6455 종료 코드, 다단 중계에서 코드·사유 설계, 1회용 티켓, 프록시 Upgrade·유휴 타임아웃
 - [L4·L7 로드밸런서와 WebSocket 설정 요청](네트워크/웹소켓/L4·L7 로드밸런서와 WebSocket 설정 요청.md) — L4와 Nginx(L7·stream) 차이, Upgrade·유휴 타임아웃·최대 연결 시간·아웃바운드, ping 주기, 트래픽 추정, SockJS 폴백
+- [실시간 변경 알림 대신 제출 시 버전 검사](네트워크/웹소켓/실시간 변경 알림 대신 제출 시 버전 검사.md) — 웹소켓 알림이 맞지 않는 경우(정확성·인메모리 브로커·새로고침 손실), 낙관적 잠금, 수정 시각을 바꾸는 변경 확인, 시간대·형식 맞추기, opener 없는 팝업
 
 ## Windows·자동화
 - [작업 스케줄러로 스크립트 자동 실행](Windows·자동화/작업 스케줄러로 스크립트 자동 실행.md) — UAC 없이 관리자 스크립트 실행, idle 감지, 창 없는 실행, 작업 잠시 끄기·다시 켜기
@@ -72,6 +77,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [PowerShell 기초 문법(Java 개발자용)](Windows·자동화/PowerShell 기초 문법(Java 개발자용).md) — 변수 스코프, 단어 연산자, @ 기호, 객체 파이프, cmdlet 호출, 경로 명령
 - [PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시](Windows·자동화/PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시.md) — 창 없는 실행과 출력 리다이렉트, DoEvents, 프로세스 트리 종료, exe로 감싸도 소스가 보이는 이유
 - [HTML 파일을 작업 표시줄에 앱처럼 고정하기](Windows·자동화/HTML 파일을 작업 표시줄에 앱처럼 고정하기.md) — chrome --app 바로가기, PowerShell로 .lnk·아이콘 지정, 고정은 수동, 아이콘 캐시
+- [netsh Wi-Fi 전환 배치 파일을 다른 PC에 나눠 줄 때](Windows·자동화/netsh Wi-Fi 전환 배치 파일을 다른 PC에 나눠 줄 때.md) — 고정 IP 충돌, %~dp0 상대 경로, PC 전용 바로가기·어댑터 이름, 평문 비밀번호 XML, 재시도 없는 연결, UTF-8 배치 한글 깨짐, DHCP 복귀
 - [작업 표시줄 아이콘에 계단식 메뉴 붙이기](Windows·자동화/작업 표시줄 아이콘에 계단식 메뉴 붙이기.md) — Windows 11에서 없어진 도구 모음, 기본 csc.exe로 WinForms 빌드, 폴더 구조를 메뉴로(번호 순서·구분선), 고정과 .gitignore
 
 ## Claude Code
@@ -109,4 +115,5 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [끼워 넣은 span이 주변 글꼴을 따르지 않는 이유](기타/끼워 넣은 span이 주변 글꼴을 따르지 않는 이유.md) — 태그 전역 CSS가 상속을 막는 원리, 표시 클래스에만 inherit
 - [화면 안내 메시지 설계(토스트와 알림창, 중복 알림)](기타/화면 안내 메시지 설계(토스트와 알림창, 중복 알림).md) — 성공은 토스트·실패는 알림창, 하위 함수는 결과만 반환, 결과 확인 후 상태 변경, 일괄 처리 안내
 - [window.open 창 이름 재사용과 opener](기타/window.open 창 이름 재사용과 opener.md) — 같은 이름 창 재로드로 입력 내용 소실, 고정 이름 보조 창의 opener, 새 탭·위젯 창의 opener 없음과 postMessage 열기 요청, 비동기 뒤 팝업 차단과 빈 창 먼저 열기
+- [목록과 건수를 따로 요청할 때 응답 순서 버그](기타/목록과 건수를 따로 요청할 때 응답 순서 버그.md) — 순서가 뒤집히는 이유, 페이지 번호 소실·이전 건수 사용·재사용 파라미터에 남은 플래그, readyState 확인, route 지연으로 재현
 - [Playwright 화면 자동화에서 자주 막히는 지점](기타/Playwright 화면 자동화에서 자주 막히는 지점.md) — 숫자로 시작하는 id 선택자, window.event 핸들러와 실제 클릭, 다시 그려지는 목록, 확인 창 골라 답하기, 대기 시간, 건별 예외와 정리, 네트워크 재연결, 셸로 넣은 정규식 깨짐
