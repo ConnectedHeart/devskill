@@ -27,7 +27,8 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [LDAP bind로 AD 비밀번호 확인하기](인증·보안/LDAP bind로 AD 비밀번호 확인하기.md) — simple bind 판정, 비밀번호 동기화 패턴, 빈 비밀번호·인증서 검증·장애 처리 주의
 - [비밀번호로 토큰을 발급하는 API를 추가할 때 점검할 것](인증·보안/비밀번호로 토큰을 발급하는 API를 추가할 때 점검할 것.md) — 세션 기반 토큰 수명, 옮길 보안 검사, 실패 로그, 평문 전송과 쿼리스트링 금지
 - [클라이언트가 만들 수 있는 값으로 권한을 판정할 때의 구멍](인증·보안/클라이언트가 만들 수 있는 값으로 권한을 판정할 때의 구멍.md) — 난독화 토큰 접두어 위조, X-Forwarded-For 조작과 구분자 주입, 서버 저장 속성·서명·접속 IP 비교, 예외 계정 허용 시 점검
-- [화면 제한과 서버 측 접근 확인(IDOR)](인증·보안/화면 제한과 서버 측 접근 확인(IDOR).md) — 화면 숨김은 보안이 아님, ID로 데이터를 꺼내는 API만 확인 필요, 저장 전 대상의 소유 판정, 클라이언트가 보낸 값 신뢰 금지, 권한은 ID로·파일은 경로로 고르는 다운로드와 ID+순번 방식
+- [화면 제한과 서버 측 접근 확인(IDOR)](인증·보안/화면 제한과 서버 측 접근 확인(IDOR).md) — 화면 숨김은 보안이 아님, ID로 데이터를 꺼내는 API만 확인 필요, 저장 전 대상의 소유 판정, 클라이언트가 보낸 값 신뢰 금지, 권한은 ID로·파일은 경로로 고르는 다운로드와 ID+순번 방식, 흩어진 판정의 구멍(1단계만 판정·통과 플래그·못 찾으면 통과·경로별 조합·관리자 API)과 판정 통일·전수조사 요령
+- [URL의 ID 파라미터 숨기기와 서명 링크 토큰](인증·보안/URL의 ID 파라미터 숨기기와 서명 링크 토큰.md) — 사용자 본인에게는 숨길 수 없는 이유, 목표별 방법(POST·replaceState·토큰), DB 저장 토큰과 HMAC 서명 토큰 비교, 새로고침·메일 링크·후속 요청 한계
 - [인증 실패 응답 문구와 거부 사유 로그](인증·보안/인증 실패 응답 문구와 거부 사유 로그.md) — 판정 기준·설정 상태를 흘리는 문구, code 유지·message만 일반화, request 속성으로 사유 전달, 값 없는 사유 로그와 로그 위조 방지
 
 ## Java·Spring
@@ -36,11 +37,12 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [외부 API 판정 결과의 로컬 캐시 설계](Java·Spring/외부 API 판정 결과의 로컬 캐시 설계.md) — 성공·실패 캐시, request 속성과의 역할 구분, 다중 서버 한계
 - [Future로 외부 호출 전체 시간 제한하기](Java·Spring/Future로 외부 호출 전체 시간 제한하기.md) — connect/read 타임아웃의 빈틈, ExecutionException 벗기기, cancel의 한계
 - [RestTemplate JSON 호출의 숫자 타입과 타임아웃](Java·Spring/RestTemplate JSON 호출의 숫자 타입과 타임아웃.md) — Gson·json-simple·Jackson의 타입 차이, 전용 RestTemplate
-- [코드 점검에서 자주 나오는 결함 패턴](Java·Spring/코드 점검에서 자주 나오는 결함 패턴.md) — 순회 중 삭제, 예외 삼킴, 확장자 판별, 프록시를 거치지 않는 내부 호출, 문자열 == 비교, null 확인 순서, 단위 계산 인덱스, 루프 안 파라미터 재대입과 초기값 없는 선언, 래퍼의 인자 전달 누락, 검증 뒤 return 누락
+- [코드 점검에서 자주 나오는 결함 패턴](Java·Spring/코드 점검에서 자주 나오는 결함 패턴.md) — 순회 중 삭제, 예외 삼킴, 확장자 판별, 프록시를 거치지 않는 내부 호출, 문자열 == 비교, null 확인 순서, 단위 계산 인덱스, 루프 안 파라미터 재대입과 초기값 없는 선언, 래퍼의 인자 전달 누락, 기본값 if 블록에 갇힌 검사(괄호 위치), 검증 뒤 return 누락
 - [RequestBody와 요청 파라미터(getParameterNames)의 차이](Java·Spring/RequestBody와 요청 파라미터(getParameterNames)의 차이.md) — JSON 본문과 쿼리스트링·폼의 구분, 엄격한 파라미터 인터셉터, 쿼리스트링 비밀번호 로그
 - [의존성 제거 후 다른 라이브러리 클래스 import로 깨지는 컴파일](Java·Spring/의존성 제거 후 다른 라이브러리 클래스 import로 깨지는 컴파일.md) — Tomcat Base64 import, Commons Codec·java.util.Base64로 교체
 - [iBATIS SqlMap 사용 시 주의점](Java·Spring/iBATIS SqlMap 사용 시 주의점.md) — resultClass 없는 select는 null, Map 키 대소문자와 DB별 매퍼 한쪽 누락·기계적 대조, 들어올 수 없는 값과 비교해 죽은 isEqual 블록, CDATA 안 주석, isNotEmpty 기본값, IN 절 1000개 분할
 - [목록 행마다 서비스를 부르는 N+1과 쪽 단위 일괄 조회](Java·Spring/목록 행마다 서비스를 부르는 N+1과 쪽 단위 일괄 조회.md) — 행 수에 비례하는 시간으로 알아보기, 트랜잭션 AOP·커넥션 검증 왕복, ID 모아 IN 조회 후 Map, 판정 조건·기본값 유지, 일괄 조회가 기대는 인덱스와 패치 누락
+- [JVM 힙 상한(-Xms·-Xmx)과 개발 PC 메모리 부족](Java·Spring/JVM 힙 상한(-Xms·-Xmx)과 개발 PC 메모리 부족.md) — 기본 힙 RAM 1/4, GC 폭주 증상, IDE와 WAS 옵션 구분·적용 확인, 합계 계산, 빠른 시작과 커널 가동 시간, Electron 다중 프로세스
 - [요청 중 만든 임시 파일 정리](Java·Spring/요청 중 만든 임시 파일 정리.md) — finally에서 삭제, 확장자가 아닌 플래그로 판단, 스케줄러 정리 대상 확인, 동시 요청 파일명
 - [파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작](Java·Spring/파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작.md) — 폴더 없는 키 구조, exists·listFiles prefix·renameTo 비원자성, new File·경로 전달 연동이 깨지는 이유, 범위 GET 스트리밍, 리뷰용 grep
 - [서블릿 필터 URL 패턴과 한글 파일명 깨짐](Java·Spring/서블릿 필터 URL 패턴과 한글 파일명 깨짐.md) — *.do에만 걸린 인코딩 필터, 확장자 없는 주소의 multipart 깨짐, {id:.+} 경로 변수가 확장자를 먹는 문제
@@ -56,6 +58,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [Oracle DB 링크와 원격 객체 존재 확인](DB·SQL/Oracle DB 링크와 원격 객체 존재 확인.md) — 링크 존재·접속·원격 객체·읽기 권한 단계별 확인, 단계별 ORA 오류 의미, 시노님, 링크 세션 닫기
 - [페이징 목록 쿼리가 느린 원인과 개선 측정](DB·SQL/페이징 목록 쿼리가 느린 원인과 개선 측정.md) — 쓰지 않는 1:N 조인과 DISTINCT, 카운트 중복, 계산값 정렬, 인덱스를 고르지 않는 경우, STRAIGHT_JOIN 실험, 2단계 페이징 위험, 결과 해시로 전후 비교
 - [JDBC batch와 다건 INSERT, 일부 실패 처리](DB·SQL/JDBC batch와 다건 INSERT, 일부 실패 처리.md) — 세 방식의 왕복·실패 동작, 드라이버별 batch 효과(rewriteBatchedStatements, 프로시저), 문장 단위 롤백과 커밋 한 번, 반으로 나눠 재시도, Oracle INSERT ALL 시퀀스 문제, 다건 프로시저 요청
+- [PL-SQL 패키지 명세·본문과 프로시저 시그니처](DB·SQL/PL-SQL 패키지 명세·본문과 프로시저 시그니처.md) — 스펙·바디(선언부·구현부), 블록의 선언부·실행부·예외처리부, 시그니처·형식/실제 파라미터 용어, user_arguments 조회
 
 ## 네트워크
 - [LDAP 연결 끊김 원인 구분](네트워크/LDAP 연결 끊김 원인 구분.md) — 오류 메시지별 의미, TTL 비교로 끊은 주체 찾기
@@ -90,6 +93,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [예약 작업 무인 실행과 권한 규칙](Claude Code/예약 작업 무인 실행과 권한 규칙.md) — 고정 스크립트와 좁은 허용 규칙, 놓친 날 보충 장치의 구멍(UserPromptSubmit 훅으로 무인 세션 구분), 권한 요청 대기로 멈춘 실행, 목차 기반 요약
 - [로컬 환경 전환 불가 메시지](Claude Code/로컬 환경 전환 불가 메시지.md) — 메시지가 나오는 경우, + 버튼 세션은 실제로 로컬 실행, 재시작·폴더 재지정·정책 확인 순서
 - [Agent Skills SKILL.md 위치(Claude Code와 Codex)](Claude Code/Agent Skills SKILL.md 위치(Claude Code와 Codex).md) — SKILL.md 표준, .claude/skills와 .agents/skills 차이, AGENTS.md에 핵심 규칙 두기, 규칙·절차 분리 기준, CLAUDE.md import, 폴더 링크
+- [커밋 메시지 Co-Authored-By 줄 끄기(attribution 설정)](Claude Code/커밋 메시지 Co-Authored-By 줄 끄기(attribution 설정).md) — settings.json attribution 항목, 적용 범위, push 전 커밋 메시지에서 줄 빼기와 diff 확인
 
 ## 기타
 - [JavaScript var 스코프와 중첩 루프 버그](기타/JavaScript var 스코프와 중첩 루프 버그.md) — 함수 스코프로 루프 변수가 공유되는 원인과 증상, 수정 방법

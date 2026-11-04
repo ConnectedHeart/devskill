@@ -1,6 +1,6 @@
 # 화면 제한과 서버 측 접근 확인(IDOR)
 
-> 분류: 인증·보안 · 최근 갱신: 2026-10-30
+> 분류: 인증·보안 · 최근 갱신: 2026-11-03
 
 ## 한 줄 요약
 "이 버튼은 작성 화면에서만 보인다"는 보안이 아니다. 클라이언트가 보낸 ID로 서버가 파일·데이터를 꺼내 주는 API는 서버에서 "요청자가 이 대상을 볼 수 있는가"를 확인해야 한다.
@@ -27,7 +27,43 @@
 - 판정 결과를 보지 않는 다른 분기(미리보기·뷰어 변환 등)가 있는지도 확인한다.
 - 고치는 방향: 클라이언트에서 받는 것은 `문서 ID + 첨부 순번`뿐이다. 서버가 그 둘로 첨부 행을 찾아 경로와 파일 이름을 DB에서 읽는다. 권한 판정은 같은 ID로 한다. 첨부를 찾는 데 필요 없는 상위 ID(게시판 ID 등)가 권한 판정에 필요하면, 클라이언트에서 받지 말고 서버가 조회한다. 받더라도 조회한 값과 같은지만 확인한다.
 
+### 권한 판정이 흩어진 시스템에서 생기는 구멍
+오래된 시스템의 권한 체크를 전수조사하면 자주 나오는 모양이다.
+- **판정은 1단계, 데이터는 2·3단계**: 팝업을 여는 요청에서만 판정하고 결과(`pass`)를 화면에 넘기면, 막는 것은 화면 JS다. 실제로 파일 목록을 주거나 zip을 만들어 내려주는 다음 API를 직접 부르면 통과한다. 판정은 데이터를 돌려주는 API 안에서 다시 한다. 판정 전에 파일 복사 같은 작업을 먼저 하는 것도 피한다.
+- **통과 플래그와 클라이언트 값**: `fromLink=Y`, `skipCheck=Y` 같은 요청 파라미터로 판정을 건너뛰는 분기, 사용자 ID·회사 ID를 세션이 아니라 요청에서 받는 API, "값이 비면 검사 생략" 분기는 모두 사용자가 직접 켤 수 있는 스위치다.
+- **대상을 못 찾으면 통과**: 판정 함수가 문서를 조회하지 못했을 때 허용으로 끝나면, 상태(진행·완료)에 맞지 않는 판정 함수를 부르는 경로에서 검사가 사실상 꺼진다.
+- **경로마다 다른 판정 조합**: 같은 문서를 여는 경로(본문 화면 종류별, 부속 탭, 첨부, 외부 API, 모바일)가 각각 다른 함수·스위치·관리자 우회 조건을 쓰면 같은 사람이 경로에 따라 다른 결과를 받는다. 화면을 하나로 합치는 리팩터링에서 각자의 검사를 분기로 그대로 옮기면 이 차이가 굳어진다.
+- **목록과 열기 기준 불일치**: 목록 쿼리 조건과 열기 판정이 다른 스위치를 보면 "목록에는 없는데 열림", "목록에는 있는데 거부"가 생긴다.
+- **관리자 API**: 관리자 화면 진입 때만 역할을 확인하면, 로그인한 일반 사용자가 관리자 AJAX를 직접 불러도 통과한다. IP 대역만 보는 인터셉터는 역할 확인이 아니다.
+- 고치는 방향: 판정 메서드 하나(`canAccess(docId, user, action)`)를 두고 모든 경로가 그것만 쓰게 한다. 사용자 정보는 세션·토큰에서만 얻고, 통과 플래그는 없앤다.
+- 전수조사 요령: 인터셉터(로그인·역할) → 컨트롤러(판정 함수 직접 호출) → 서비스 → 목록 쿼리 조건 순으로 계층을 나눠, URL마다 "어느 계층에서 무엇을 보는지" 표를 만든다. 변경성 API(삭제·저장) 중 검사가 없는 것은 따로 목록으로 뺀다. 코드만 읽은 결과는 실제 재현 전까지 "추정"으로 적는다.
+
 ## 핵심 코드
+### 0) 판정을 한 곳으로: 데이터를 주는 API마다 같은 메서드로 재판정
+```java
+public enum Action { LIST, READ, EXPORT, APPROVE, MANAGE }
+
+@Service
+public class DocAccessService {
+    public boolean canAccess(String docId, LoginUser user, Action action) {
+        Doc doc = docRepository.findById(docId);
+        if (doc == null) return false;                       // 못 찾으면 거부 (통과 아님)
+        if (user.hasRole("ADMIN") && action != Action.APPROVE) return true;  // 관리자 우회 조건은 여기 한 곳
+        boolean involved = lineRepository.isInvolved(docId, user.getId());
+        boolean open = doc.isPublicFor(user) && user.getSecurityLevel() <= doc.getSecurityLevel();
+        return doc.isInProgress() ? involved || open : involved || open || readerRepository.isReader(docId, user.getId());
+    }
+}
+
+// 팝업용 확인 API뿐 아니라 실제 zip을 내려주는 API에서도 다시 판정
+@PostMapping("/docs/{docId}/export")
+public void export(@PathVariable String docId, HttpSession session, HttpServletResponse res) throws IOException {
+    LoginUser user = (LoginUser) session.getAttribute("loginUser");   // 요청 파라미터의 userId는 쓰지 않음
+    if (user == null || !docAccessService.canAccess(docId, user, Action.EXPORT)) { res.sendError(404); return; }
+    exportService.writeZip(docId, res.getOutputStream());              // 파일 경로는 서버가 docId로 찾음
+}
+```
+
 ### 1) 컨트롤러: ID로 꺼내기 전에 열람 권한 확인
 ```java
 @GetMapping("/docs/{docId}/ai-summary")
