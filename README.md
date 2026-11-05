@@ -41,24 +41,27 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [RequestBody와 요청 파라미터(getParameterNames)의 차이](Java·Spring/RequestBody와 요청 파라미터(getParameterNames)의 차이.md) — JSON 본문과 쿼리스트링·폼의 구분, 엄격한 파라미터 인터셉터, 쿼리스트링 비밀번호 로그
 - [의존성 제거 후 다른 라이브러리 클래스 import로 깨지는 컴파일](Java·Spring/의존성 제거 후 다른 라이브러리 클래스 import로 깨지는 컴파일.md) — Tomcat Base64 import, Commons Codec·java.util.Base64로 교체
 - [iBATIS SqlMap 사용 시 주의점](Java·Spring/iBATIS SqlMap 사용 시 주의점.md) — resultClass 없는 select는 null, Map 키 대소문자와 DB별 매퍼 한쪽 누락·기계적 대조, 들어올 수 없는 값과 비교해 죽은 isEqual 블록, CDATA 안 주석, isNotEmpty 기본값, IN 절 1000개 분할
-- [목록 행마다 서비스를 부르는 N+1과 쪽 단위 일괄 조회](Java·Spring/목록 행마다 서비스를 부르는 N+1과 쪽 단위 일괄 조회.md) — 행 수에 비례하는 시간으로 알아보기, 트랜잭션 AOP·커넥션 검증 왕복, ID 모아 IN 조회 후 Map, 판정 조건·기본값 유지, 일괄 조회가 기대는 인덱스와 패치 누락
+- [목록 행마다 서비스를 부르는 N+1과 쪽 단위 일괄 조회](Java·Spring/목록 행마다 서비스를 부르는 N+1과 쪽 단위 일괄 조회.md) — 행 수에 비례하는 시간으로 알아보기, 트랜잭션 AOP·커넥션 검증 왕복, ID 모아 IN 조회 후 Map, 판정 조건·기본값 유지, 칸마다 같은 설정값 읽기, 트리 노드별 확인 요청을 일괄 요청으로, 일괄 조회가 기대는 인덱스와 패치 누락
 - [JVM 힙 상한(-Xms·-Xmx)과 개발 PC 메모리 부족](Java·Spring/JVM 힙 상한(-Xms·-Xmx)과 개발 PC 메모리 부족.md) — 기본 힙 RAM 1/4, GC 폭주 증상, IDE와 WAS 옵션 구분·적용 확인, 합계 계산, 빠른 시작과 커널 가동 시간, Electron 다중 프로세스
 - [요청 중 만든 임시 파일 정리](Java·Spring/요청 중 만든 임시 파일 정리.md) — finally에서 삭제, 확장자가 아닌 플래그로 판단, 스케줄러 정리 대상 확인, 동시 요청 파일명
 - [파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작](Java·Spring/파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작.md) — 폴더 없는 키 구조, exists·listFiles prefix·renameTo 비원자성, new File·경로 전달 연동이 깨지는 이유, 범위 GET 스트리밍, 리뷰용 grep
 - [서블릿 필터 URL 패턴과 한글 파일명 깨짐](Java·Spring/서블릿 필터 URL 패턴과 한글 파일명 깨짐.md) — *.do에만 걸린 인코딩 필터, 확장자 없는 주소의 multipart 깨짐, {id:.+} 경로 변수가 확장자를 먹는 문제
 - [Spring에 선택적 두 번째 데이터소스 추가하기](Java·Spring/Spring에 선택적 두 번째 데이터소스 추가하기.md) — JNDI와 properties 직접 연결, 빈 기본값·lazy-init·autowire-candidate로 기동 유지, URL 없으면 기존 경로, DB 종류 메타데이터 판별, 트랜잭션 밖 직접 JDBC
+- [HttpClient 커넥션 풀 크기와 자기 서버 호출 교착](Java·Spring/HttpClient 커넥션 풀 크기와 자기 서버 호출 교착.md) — 생성 방식별 기본 풀(5·2·무제한), 싱글톤화로 생기는 병목, 동시 호출 수로 크기 정하기, maxThreads 40% 이내 이유, 풀 대기 상한, 공유 쿠키 저장소·시스템 프로퍼티 누락, 같은 풀 다른 타임아웃
 
 ## DB·SQL
-- [AUTO_INCREMENT가 건너뛰며 증가하는 이유](DB·SQL/AUTO_INCREMENT가 건너뛰며 증가하는 이유.md) — auto_increment_increment와 Galera, LAST_INSERT_ID와 MAX의 차이
+- [AUTO_INCREMENT가 건너뛰며 증가하는 이유](DB·SQL/AUTO_INCREMENT가 건너뛰며 증가하는 이유.md) — auto_increment_increment와 Galera, LAST_INSERT_ID와 MAX의 차이, DDL에 따라온 덤프 시작값
 - [SELECT FOR UPDATE로 다중 서버 중복 갱신 막기](DB·SQL/SELECT FOR UPDATE로 다중 서버 중복 갱신 막기.md) — 행 잠금 후 재판정, JVM 잠금과 함께 쓰는 이유
 - [시각 컬럼 타입 선택(epoch millis와 날짜 타입)](DB·SQL/시각 컬럼 타입 선택(epoch millis와 날짜 타입).md) — 타임존 위험, UTC 기록 컬럼, MySQL·Oracle 컬럼 타입 변경 차이
 - [PostgreSQL 개요와 MySQL·Oracle 문법 차이](DB·SQL/PostgreSQL 개요와 MySQL·Oracle 문법 차이.md) — 특징, 문법 비교표, 식별자 소문자화와 엄격한 형변환
 - [DB별 SQL에서 조용히 틀리는 조건식 패턴](DB·SQL/DB별 SQL에서 조용히 틀리는 조건식 패턴.md) — Oracle || 와 - 우선순위, MySQL IN 안의 OR, BETWEEN 인자 순서, 날짜에 숫자 빼기, 시각 붙은 날짜 = 비교, ORDER BY 없는 순서 의존
-- [MySQL 조인 컬럼 문자셋 불일치로 인덱스를 못 쓰는 문제](DB·SQL/MySQL 조인 컬럼 문자셋 불일치로 인덱스를 못 쓰는 문제.md) — utf8mb4·utf8 조인의 EXPLAIN 증상, CONVERT 변형으로 미리 재기, 콜레이션까지 맞춘 ALTER 생성, 데이터 있을 때 잠금·인덱스 길이·사전 점검, 변환 후 통계와 ANALYZE
+- [MySQL 조인 컬럼 문자셋 불일치로 인덱스를 못 쓰는 문제](DB·SQL/MySQL 조인 컬럼 문자셋 불일치로 인덱스를 못 쓰는 문제.md) — utf8mb4·utf8 조인의 EXPLAIN 증상, 상수 조건이 상대 테이블로 안 넘어가는 경우와 EXISTS·조건 명시 우회, 앱 연결 콜레이션으로 재기, CONVERT 변형으로 미리 재기, 콜레이션까지 맞춘 ALTER 생성, 데이터 있을 때 잠금·인덱스 길이·사전 점검, 변환 후 통계와 ANALYZE
 - [Oracle DB 링크와 원격 객체 존재 확인](DB·SQL/Oracle DB 링크와 원격 객체 존재 확인.md) — 링크 존재·접속·원격 객체·읽기 권한 단계별 확인, 단계별 ORA 오류 의미, 시노님, 링크 세션 닫기
 - [페이징 목록 쿼리가 느린 원인과 개선 측정](DB·SQL/페이징 목록 쿼리가 느린 원인과 개선 측정.md) — 쓰지 않는 1:N 조인과 DISTINCT, 카운트 중복, 계산값 정렬, 인덱스를 고르지 않는 경우, STRAIGHT_JOIN 실험, 2단계 페이징 위험, 결과 해시로 전후 비교
 - [JDBC batch와 다건 INSERT, 일부 실패 처리](DB·SQL/JDBC batch와 다건 INSERT, 일부 실패 처리.md) — 세 방식의 왕복·실패 동작, 드라이버별 batch 효과(rewriteBatchedStatements, 프로시저), 문장 단위 롤백과 커밋 한 번, 반으로 나눠 재시도, Oracle INSERT ALL 시퀀스 문제, 다건 프로시저 요청
 - [PL-SQL 패키지 명세·본문과 프로시저 시그니처](DB·SQL/PL-SQL 패키지 명세·본문과 프로시저 시그니처.md) — 스펙·바디(선언부·구현부), 블록의 선언부·실행부·예외처리부, 시그니처·형식/실제 파라미터 용어, user_arguments 조회
+- [MariaDB 뷰 DEFINER 계정과 콜레이션 오류(1449·1267)](DB·SQL/MariaDB 뷰 DEFINER 계정과 콜레이션 오류(1449·1267).md) — 계정 이름 대소문자, 잠긴 DEFINER 계정 추가, 뷰 상수가 만들 때 콜레이션으로 저장되는 문제와 재현, 예외 변환기 null로 NPE만 보이는 경우
+- [인덱스를 타는 조건과 온라인 인덱스 추가(INPLACE·LOCK=NONE)](DB·SQL/인덱스를 타는 조건과 온라인 인덱스 추가(INPLACE·LOCK=NONE).md) — 함수로 감싼 컬럼을 범위 조건으로, 경계값 대량 대조, 용도별 복합 인덱스와 잠금 범위, 온라인 DDL 옵션의 안전장치 역할, 메타데이터 잠금, Galera TOI
 
 ## 네트워크
 - [LDAP 연결 끊김 원인 구분](네트워크/LDAP 연결 끊김 원인 구분.md) — 오류 메시지별 의미, TTL 비교로 끊은 주체 찾기
@@ -94,6 +97,8 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [로컬 환경 전환 불가 메시지](Claude Code/로컬 환경 전환 불가 메시지.md) — 메시지가 나오는 경우, + 버튼 세션은 실제로 로컬 실행, 재시작·폴더 재지정·정책 확인 순서
 - [Agent Skills SKILL.md 위치(Claude Code와 Codex)](Claude Code/Agent Skills SKILL.md 위치(Claude Code와 Codex).md) — SKILL.md 표준, .claude/skills와 .agents/skills 차이, AGENTS.md에 핵심 규칙 두기, 규칙·절차 분리 기준, CLAUDE.md import, 폴더 링크
 - [커밋 메시지 Co-Authored-By 줄 끄기(attribution 설정)](Claude Code/커밋 메시지 Co-Authored-By 줄 끄기(attribution 설정).md) — settings.json attribution 항목, 적용 범위, push 전 커밋 메시지에서 줄 빼기와 diff 확인
+- [Claude Code 세션에서 Codex CLI로 교차 리뷰하기](Claude Code/Claude Code 세션에서 Codex CLI로 교차 리뷰하기.md) — 바깥 스크립트 방식의 문제(훅·비밀 diff·read-only 한계), 세션 안 스킬 절차와 판정표, 고른 diff만 보내기, 과정 보이게 하기, Windows 실행 정책·샌드박스 전역 설치 함정
+- [한 계정으로 여러 PC에서 Claude Code 쓰기](Claude Code/한 계정으로 여러 PC에서 Claude Code 쓰기.md) — PC별 인증, 공유 사용량 한도, PC마다 따로인 기록·설정, 약관
 
 ## 기타
 - [JavaScript var 스코프와 중첩 루프 버그](기타/JavaScript var 스코프와 중첩 루프 버그.md) — 함수 스코프로 루프 변수가 공유되는 원인과 증상, 수정 방법
@@ -120,4 +125,6 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [화면 안내 메시지 설계(토스트와 알림창, 중복 알림)](기타/화면 안내 메시지 설계(토스트와 알림창, 중복 알림).md) — 성공은 토스트·실패는 알림창, 하위 함수는 결과만 반환, 결과 확인 후 상태 변경, 일괄 처리 안내
 - [window.open 창 이름 재사용과 opener](기타/window.open 창 이름 재사용과 opener.md) — 같은 이름 창 재로드로 입력 내용 소실, 고정 이름 보조 창의 opener, 새 탭·위젯 창의 opener 없음과 postMessage 열기 요청, 비동기 뒤 팝업 차단과 빈 창 먼저 열기
 - [목록과 건수를 따로 요청할 때 응답 순서 버그](기타/목록과 건수를 따로 요청할 때 응답 순서 버그.md) — 순서가 뒤집히는 이유, 페이지 번호 소실·이전 건수 사용·재사용 파라미터에 남은 플래그, readyState 확인, route 지연으로 재현
+- [jQuery Mobile 화면에서 무거운 라이브러리 지연 로드](기타/jQuery Mobile 화면에서 무거운 라이브러리 지연 로드.md) — AJAX 이동이 head를 버리는 점, 활성 페이지 범위 선택자, 안 쓰는 의존 파일 찾기, 1회 로드·진행 중 공유·script 태그 방식(CSP)·타임아웃, 나간 뒤 그리지 않기
+- [개발자 도구로 iframe 화면 이동 시간 재기](기타/개발자 도구로 iframe 화면 이동 시간 재기.md) — Finish가 안 나오는 이유, End Time 정렬·Performance 스크린샷, 프레임 넘는 콘솔 스니펫, Playwright, access log %D
 - [Playwright 화면 자동화에서 자주 막히는 지점](기타/Playwright 화면 자동화에서 자주 막히는 지점.md) — 숫자로 시작하는 id 선택자, window.event 핸들러와 실제 클릭, 다시 그려지는 목록, 확인 창 골라 답하기, 대기 시간, 건별 예외와 정리, 네트워크 재연결, 셸로 넣은 정규식 깨짐

@@ -1,6 +1,6 @@
 # AUTO_INCREMENT가 건너뛰며 증가하는 이유
 
-> 분류: DB·SQL · 최근 갱신: 2026-10-27
+> 분류: DB·SQL · 최근 갱신: 2026-11-04
 
 ## 한 줄 요약
 MySQL/MariaDB에서 ID가 3씩(또는 N씩) 증가하면 대개 `auto_increment_increment` 설정 때문이고, Galera 클러스터가 노드 간 ID 충돌을 막으려고 자동으로 넣는 값이다.
@@ -24,6 +24,13 @@ MySQL/MariaDB에서 ID가 3씩(또는 N씩) 증가하면 대개 `auto_increment_
 ### 방금 넣은 ID 가져오기
 - `SELECT MAX(id)`로 가져오면 동시에 다른 연결이 넣은 행의 ID를 받을 수 있다. 이후 그 ID로 링크나 후속 처리를 하면 엉뚱한 행을 가리킨다.
 - `LAST_INSERT_ID()`는 연결(세션)별 값이라 동시 등록에도 안전하다.
+
+### DDL 파일의 `AUTO_INCREMENT=736` 같은 시작값
+- `CREATE TABLE ... ENGINE=InnoDB AUTO_INCREMENT=736`은 "다음 번호를 736부터"라는 테이블 옵션이다.
+- 개발 DB에서 `SHOW CREATE TABLE`이나 mysqldump(`--no-data`여도)로 구조를 뽑아 붙여 넣으면 그 시점의 다음 번호가 따라온다. 대개 의도한 값이 아니라 덤프 흔적이다.
+- 영향: 새로 설치한 DB에서 번호가 그 값부터 매겨질 뿐 기능 영향은 없다. 이미 테이블이 있는 운영 DB에는 DDL이 다시 실행되지 않아 무관하다.
+- 정리할 때는 덤프 흔적만 지운다. `=1`은 기본값과 같아 의미가 없고, 큰 둥근 값(예: 10000000)은 다른 ID 체계와 겹치지 않게 일부러 정한 값일 수 있으니 이력을 확인한다.
+- 덤프 때 빼려면 `mysqldump --no-data ... | sed 's/ AUTO_INCREMENT=[0-9]*//'`처럼 후처리한다.
 
 ## 핵심 코드
 ### 1) 설정 확인과 방금 넣은 ID (MySQL/MariaDB)
