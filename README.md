@@ -15,6 +15,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기](Git/푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기.md) — force-push 대신 revert, 최신 순 revert, 함께 빼야 할 커밋·다른 저장소 영향, 빠지는 정의의 호출처 확인, worktree 작업과 긴 경로 오류
 - [format-patch와 am으로 커밋 옮기기와 적용 전 검증](Git/format-patch와 am으로 커밋 옮기기와 적용 전 검증.md) — git am·apply·cherry-pick 비교, --cherry-pick으로 안 넘어간 커밋 찾기, 패치 생성, am --keep-non-patch로 [태그] 유지, 커밋 제목 파일명, 선행 패치 순서, 임시 인덱스로 apply --cached --check, 일부 패치 제외 적용, 멈췄을 때 abort·3way·skip, -3 원리와 fake ancestor, 멈춘 상태 읽기, conflictStyle diff3, 적용 스크립트 사전 검사, PowerShell 글롭 미전개, 빠진 패치 번호, stash 후 적용
 - [git 한글 경로 깨짐과 스테이징 후 삭제된 파일](Git/git 한글 경로 깨짐과 스테이징 후 삭제된 파일.md) — core.quotepath, 터미널 인코딩, 인덱스에서 되살리기와 rm --cached, restore --staged
+- [git 병합(3-way merge)과 리버트·체리픽이 섞일 때 결과](Git/git 병합(3-way merge)과 리버트·체리픽이 섞일 때 결과.md) — 공통 조상·양 끝 비교 규칙표, 넣고 뺀 변경의 상쇄, 리버트가 반대 브랜치로 넘어가는 조건, 리버트된 커밋 체리픽 실수, 작업트리에 잡힌 브랜치
 
 ## 인증·보안
 - [Keycloak audience(aud)와 azp 검증](인증·보안/Keycloak audience(aud)와 azp 검증.md) — aud·azp의 의미, Audience 매퍼 추가, API 서버 검증과 적용 순서
@@ -42,12 +43,12 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [의존성 제거 후 다른 라이브러리 클래스 import로 깨지는 컴파일](Java·Spring/의존성 제거 후 다른 라이브러리 클래스 import로 깨지는 컴파일.md) — Tomcat Base64 import, Commons Codec·java.util.Base64로 교체
 - [iBATIS SqlMap 사용 시 주의점](Java·Spring/iBATIS SqlMap 사용 시 주의점.md) — resultClass 없는 select는 null, Map 키 대소문자와 DB별 매퍼 한쪽 누락·기계적 대조, 들어올 수 없는 값과 비교해 죽은 isEqual 블록, CDATA 안 주석, isNotEmpty 기본값, IN 절 1000개 분할
 - [목록 행마다 서비스를 부르는 N+1과 쪽 단위 일괄 조회](Java·Spring/목록 행마다 서비스를 부르는 N+1과 쪽 단위 일괄 조회.md) — 행 수에 비례하는 시간으로 알아보기, 트랜잭션 AOP·커넥션 검증 왕복, ID 모아 IN 조회 후 Map, 판정 조건·기본값 유지, 칸마다 같은 설정값 읽기, 트리 노드별 확인 요청을 일괄 요청으로, 일괄 조회가 기대는 인덱스와 패치 누락
-- [JVM 힙 상한(-Xms·-Xmx)과 개발 PC 메모리 부족](Java·Spring/JVM 힙 상한(-Xms·-Xmx)과 개발 PC 메모리 부족.md) — 기본 힙 RAM 1/4, GC 폭주 증상, IDE와 WAS 옵션 구분·적용 확인, 합계 계산, 빠른 시작과 커널 가동 시간, Electron 다중 프로세스
+- [JVM 힙 상한(-Xms·-Xmx)과 개발 PC 메모리 부족](Java·Spring/JVM 힙 상한(-Xms·-Xmx)과 개발 PC 메모리 부족.md) — 기본 힙 RAM 1/4, GC 폭주 증상, IDE와 WAS 옵션 구분·적용 확인, 합계 계산, 빠른 시작과 커널 가동 시간, Electron 다중 프로세스, Maven surefire forkCount=1C로 테스트 JVM 메모리 부족
 - [요청 중 만든 임시 파일 정리](Java·Spring/요청 중 만든 임시 파일 정리.md) — finally에서 삭제, 확장자가 아닌 플래그로 판단, 스케줄러 정리 대상 확인, 동시 요청 파일명
 - [파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작](Java·Spring/파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작.md) — 폴더 없는 키 구조, exists·listFiles prefix·renameTo 비원자성, new File·경로 전달 연동이 깨지는 이유, 범위 GET 스트리밍, 리뷰용 grep
 - [서블릿 필터 URL 패턴과 한글 파일명 깨짐](Java·Spring/서블릿 필터 URL 패턴과 한글 파일명 깨짐.md) — *.do에만 걸린 인코딩 필터, 확장자 없는 주소의 multipart 깨짐, {id:.+} 경로 변수가 확장자를 먹는 문제
 - [Spring에 선택적 두 번째 데이터소스 추가하기](Java·Spring/Spring에 선택적 두 번째 데이터소스 추가하기.md) — JNDI와 properties 직접 연결, 빈 기본값·lazy-init·autowire-candidate로 기동 유지, URL 없으면 기존 경로, DB 종류 메타데이터 판별, 트랜잭션 밖 직접 JDBC
-- [HttpClient 커넥션 풀 크기와 자기 서버 호출 교착](Java·Spring/HttpClient 커넥션 풀 크기와 자기 서버 호출 교착.md) — 생성 방식별 기본 풀(5·2·무제한), 싱글톤화로 생기는 병목, 동시 호출 수로 크기 정하기, maxThreads 40% 이내 이유, 풀 대기 상한, 공유 쿠키 저장소·시스템 프로퍼티 누락, 같은 풀 다른 타임아웃
+- [HttpClient 커넥션 풀 크기와 자기 서버 호출 교착](Java·Spring/HttpClient 커넥션 풀 크기와 자기 서버 호출 교착.md) — 생성 방식별 기본 풀(5·2·무제한), 싱글톤화로 생기는 병목, 동시 호출 수로 크기 정하기, maxThreads 40% 이내 이유, 풀 대기 상한, 공유 쿠키 저장소·시스템 프로퍼티 누락, 같은 풀 다른 타임아웃, 팩토리 값이 설정 키를 이기는 실제 타임아웃, 긴 기본 읽기 타임아웃을 물려받는 외부 호출, 남은 new RestTemplate 찾기, 쿠키 미저장 뒤 상대 서버 세션 증가
 
 ## DB·SQL
 - [AUTO_INCREMENT가 건너뛰며 증가하는 이유](DB·SQL/AUTO_INCREMENT가 건너뛰며 증가하는 이유.md) — auto_increment_increment와 Galera, LAST_INSERT_ID와 MAX의 차이, DDL에 따라온 덤프 시작값
@@ -106,7 +107,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [앱·사이트 사용 제한 프로그램의 구현 방식과 한계](기타/앱·사이트 사용 제한 프로그램의 구현 방식과 한계.md) — Windows 프로세스 감시, 설정 파일 잠금·레지스트리 사본으로 초기화 우회 막기, Android 접근성 서비스, 기본 제공 기능과 비교
 - [iframe src 변경과 브라우저 방문 기록](기타/iframe src 변경과 브라우저 방문 기록.md) — 뒤로가기를 여러 번 눌러야 하는 원인, location.replace, history.length로 추적
 - [외부 검색엔진 연동과 검색 결과 권한 필터링](기타/외부 검색엔진 연동과 검색 결과 권한 필터링.md) — 색인용 뷰, 트리거 증분 색인, 권한 색인과 접근 식별자 목록 대조
-- [톰캣 폴더 교체 배포 스크립트 설계](기타/톰캣 폴더 교체 배포 스크립트 설계.md) — 준비·교체 분리, 준비 완료 표시 파일, mkdir 잠금, ps -o 함정, 기동 확인과 되돌리기
+- [톰캣 폴더 교체 배포 스크립트 설계](기타/톰캣 폴더 교체 배포 스크립트 설계.md) — 준비·교체 분리, 준비 완료 표시 파일, mkdir 잠금, ps -o 함정, 기동 확인과 되돌리기, JSP 컴파일 캐시(work) 삭제, pgrep -f 범위 좁히기, 비어 있는 외부 환경변수 경로, 늦게 내려가는 톰캣
 - [목록 화면에서 선택 행과 전역 변수가 어긋나는 버그](기타/목록 화면에서 선택 행과 전역 변수가 어긋나는 버그.md) — 체크박스·Ctrl 클릭이 변수를 갱신하지 않아 다른 항목이 처리되는 원인, 행 안 드롭다운이 선택 행을 고치는 경우, 마우스로는 안 나고 키보드·selectOption에서만 나는 이유, 수정과 재현 요령
 - [외부 응답을 화면에 넣는 방식(텍스트 노드와 innerHTML)](기타/외부 응답을 화면에 넣는 방식(텍스트 노드와 innerHTML).md) — 태그가 글자로 보이는 이유, 컨트롤 노출, data-* 속성과 경로별 필터
 - [nohup으로 jar 백그라운드 실행과 java 옵션 순서](기타/nohup으로 jar 백그라운드 실행과 java 옵션 순서.md) — -D·-cp는 -jar 앞에, -jar이면 -cp 무시, nohup 출력 처리와 기동 로그
@@ -126,5 +127,5 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [window.open 창 이름 재사용과 opener](기타/window.open 창 이름 재사용과 opener.md) — 같은 이름 창 재로드로 입력 내용 소실, 고정 이름 보조 창의 opener, 새 탭·위젯 창의 opener 없음과 postMessage 열기 요청, 비동기 뒤 팝업 차단과 빈 창 먼저 열기
 - [목록과 건수를 따로 요청할 때 응답 순서 버그](기타/목록과 건수를 따로 요청할 때 응답 순서 버그.md) — 순서가 뒤집히는 이유, 페이지 번호 소실·이전 건수 사용·재사용 파라미터에 남은 플래그, readyState 확인, route 지연으로 재현
 - [jQuery Mobile 화면에서 무거운 라이브러리 지연 로드](기타/jQuery Mobile 화면에서 무거운 라이브러리 지연 로드.md) — AJAX 이동이 head를 버리는 점, 활성 페이지 범위 선택자, 안 쓰는 의존 파일 찾기, 1회 로드·진행 중 공유·script 태그 방식(CSP)·타임아웃, 나간 뒤 그리지 않기
-- [개발자 도구로 iframe 화면 이동 시간 재기](기타/개발자 도구로 iframe 화면 이동 시간 재기.md) — Finish가 안 나오는 이유, End Time 정렬·Performance 스크린샷, 프레임 넘는 콘솔 스니펫, Playwright, access log %D
+- [개발자 도구로 iframe 화면 이동 시간 재기](기타/개발자 도구로 iframe 화면 이동 시간 재기.md) — Finish가 안 나오는 이유, End Time 정렬·Performance 스크린샷과 설정·읽는 법, 프레임 넘는 콘솔 스니펫, 일반 사용자용 측정 북마클릿(요청 추적·DOM 정지·주기 조회 제외), 측정 도구 타당성 교차 검증, Playwright, access log %D
 - [Playwright 화면 자동화에서 자주 막히는 지점](기타/Playwright 화면 자동화에서 자주 막히는 지점.md) — 숫자로 시작하는 id 선택자, window.event 핸들러와 실제 클릭, 다시 그려지는 목록, 확인 창 골라 답하기, 대기 시간, 건별 예외와 정리, 네트워크 재연결, 셸로 넣은 정규식 깨짐

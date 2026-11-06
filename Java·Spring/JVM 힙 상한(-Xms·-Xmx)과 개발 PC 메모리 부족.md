@@ -1,6 +1,6 @@
 # JVM 힙 상한(-Xms·-Xmx)과 개발 PC 메모리 부족
 
-> 분류: Java·Spring · 최근 갱신: 2026-11-03
+> 분류: Java·Spring · 최근 갱신: 2026-11-05
 
 ## 한 줄 요약
 IDE와 로컬 WAS를 함께 띄우는 개발 PC가 뜨거워지고 버벅이면, 힙 상한 없이 뜬 JVM들이 RAM을 나눠 먹다 GC를 계속 도는 경우가 많다. 각 JVM에 `-Xmx`를 정해 합계가 RAM 안에 들어오게 한다.
@@ -22,6 +22,17 @@ IDE와 로컬 WAS를 함께 띄우는 개발 PC가 뜨거워지고 버벅이면,
 - IDE(IntelliJ 등) 자체의 힙은 IDE 설정 폴더의 `*.vmoptions` 파일(메뉴: 도움말 > 사용자 지정 VM 옵션 편집)에서 정한다. 로컬 WAS의 힙과 별개다.
 - IDE에서 띄운 톰캣의 힙은 실행 구성(Run Configuration)의 VM options, 톰캣 `bin/setenv`, `JAVA_OPTS`/`CATALINA_OPTS` 환경 변수 중 하나에서 온다. 셋 다 비어 있으면 기본값(RAM 1/4)이다.
 - 실제로 적용됐는지는 실행 중인 프로세스의 명령줄에 `-Xmx`가 들어 있는지로 확인한다. IDE는 옵션 파일을 내부에서 읽어 명령줄에 안 보일 수 있다. 정확한 값은 `jcmd <pid> VM.flags`로 본다(JDK에 포함, JRE만 있으면 없음).
+
+### Maven 테스트 JVM이 코어 수만큼 뜨는 경우
+- surefire의 `forkCount`에 `1C`처럼 C를 붙이면 "CPU 코어 수 × 값"만큼 테스트 JVM을 동시에 띄운다. 16코어 PC면 16개다.
+- IDE·로컬 WAS·브라우저가 떠 있는 PC에서 `mvn package`를 돌리면 테스트 JVM들이 `There is insufficient memory for the Java Runtime Environment`로 죽고, 저장소 루트에 `hs_err_pid*.log`·`replay_pid*.log`가 남으며 빌드가 실패한다.
+- 빌드 도구(배포 툴 등)가 `mvn clean package`를 그대로 부르면 같은 문제를 겪는다. 테스트를 돌릴 필요가 없으면 `-Dmaven.test.skip=true`, 돌려야 하면 `-DforkCount=2`처럼 동시 수를 줄인다(명령줄 값이 pom 설정보다 우선하는 것은 pom에서 `${forkCount}` 같은 프로퍼티로 받았을 때다. 값이 직접 적혀 있으면 pom을 고친다).
+- `-DskipTests`는 테스트 컴파일은 하고 실행만 건너뛴다. 메모리 문제는 피하지만, 테스트 컴파일 자체가 무거우면 `-Dmaven.test.skip=true`가 낫다.
+
+```bash
+mvn clean package -Dmaven.test.skip=true   # 테스트 컴파일·실행 모두 건너뜀
+mvn clean package -DforkCount=2            # 테스트는 돌리되 동시 JVM 2개
+```
 
 ### 합계로 계산하기
 - 최악의 경우 = IDE 상한 + WAS 상한 × 대수 + DB 서버 + 브라우저·메신저. 이것이 RAM보다 크면 오래 켜 둘 때 페이징과 GC가 겹친다.

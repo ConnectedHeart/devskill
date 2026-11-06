@@ -1,6 +1,6 @@
 # HttpClient 커넥션 풀 크기와 자기 서버 호출 교착
 
-> 분류: Java·Spring · 최근 갱신: 2026-11-04
+> 분류: Java·Spring · 최근 갱신: 2026-11-05
 
 ## 한 줄 요약
 Spring RestTemplate을 Apache HttpClient 4.x로 만들 때 풀을 따로 지정하지 않으면 경로(호스트:포트)당 2~5개 연결만 쓰므로, 공유 RestTemplate 하나로 자기 서버나 게이트웨이를 부르면 동시 요청이 몰릴 때 줄을 선다. 풀 크기는 동시 호출 수로 정하고, 자기 서버 호출이면 Tomcat `maxThreads`의 25~40% 이내로 잡아 교착을 막는다.
@@ -33,6 +33,23 @@ Spring RestTemplate을 Apache HttpClient 4.x로 만들 때 풀을 따로 지정�
 - **우선순위:** `HttpComponentsClientHttpRequestFactory`에 지정한 연결·읽기 타임아웃이 `RequestConfig` 값보다 우선한다. 풀 대기 상한은 `RequestConfig`에서 온다.
 - **종료:** `httpClient`에 `destroy-method="close"`를 걸어 재배포 때 소켓을 정리한다.
 - 긴 작업(파일 처리 등) 때문에 읽기 타임아웃을 크게 잡았다면, 같은 풀을 쓰되 타임아웃만 다른 RestTemplate을 하나 더 두고 긴 호출만 옮긴다. 느린 호출 하나가 풀 한 자리를 오래 잡지 않게 하기 위해서다.
+
+### 실제로 적용되는 타임아웃 확인하기
+- 설정 파일에 `connectTimeout`·`socketTimeout` 키가 있어도, XML에서 팩토리(`HttpComponentsClientHttpRequestFactory`)에 값을 직접 적었다면 그 값이 이긴다. "설정 키는 30초인데 실제로는 300초"인 경우가 생기므로, 쓰이지 않는 키에는 주석으로 실제 적용 위치를 밝히거나 팩토리 값도 `${키:기본값}`으로 바꾼다.
+- 팩토리에 값이 없으면 `RequestConfig`(HttpClient 기본) 값이 쓰인다. 같은 프로젝트라도 서버(웹·모바일)마다 어느 쪽이 쓰이는지 다를 수 있다.
+- 공유 빈 기본 읽기 타임아웃을 아주 길게(예: 5분) 잡으면, 같은 빈으로 **외부 서버**를 부르는 곳도 그 값을 물려받는다. 외부 서버가 멈추면 사용자 요청마다 WAS 스레드(자기 호출이면 2개)와, 트랜잭션 안이면 DB 커넥션까지 그 시간 동안 묶인다. 외부 호출에는 짧은 타임아웃을 따로 준다(위 2번 코드).
+- 기본값을 줄이기 전에 그 값을 왜 늘렸는지 이력을 확인한다. 특정 긴 호출 때문이었다면 그 호출만 길게 따로 주고 기본값을 내린다.
+
+### 남아 있는 `new RestTemplate()` 찾기
+- `new RestTemplate()`과 `new SimpleClientHttpRequestFactory()`는 JDK 연결을 쓰므로 풀 설정과 무관하고, 지정하지 않으면 연결·읽기 타임아웃이 없다(상대가 응답하지 않으면 스레드가 끝없이 기다림).
+- 공유 빈에 풀 설정을 넣어도 이런 호출부는 그대로라 효과가 제한된다. 호출부 수를 먼저 센다.
+- 대용량 파일 업로드에서 `setBufferRequestBody(false)`(스트리밍)로 쓰는 곳은 공유 풀로 옮기기보다 연결·읽기 타임아웃만 추가하는 편이 단순하다.
+- 호출마다 `new HttpComponentsClientHttpRequestFactory()`를 만드는 헬퍼는 공유 `HttpClient`를 생성자에 넘기도록 바꾸면, 타임아웃은 호출별로 유지하면서 풀·풀 대기 상한·쿠키 설정을 공유한다(아래 2번 코드).
+
+### 쿠키 미저장으로 바꾼 뒤 상대 서버 세션
+- 상대 서버 코드가 `request.getSession()`을 부르면, 쿠키를 저장하지 않는 클라이언트의 호출마다 빈 세션이 새로 생기고 세션 만료 시간(Tomcat 기본 30분) 뒤 사라진다. 기능 차이는 없지만 세션 수가 호출 수만큼 늘어난다.
+- 쿠키를 저장하던 이전 상태는 오히려 모든 사용자가 상대 서버 세션 하나를 같이 쓰는 구조였다(세션에 값을 넣는 코드가 생기면 사용자끼리 섞임).
+- 세션이 필요 없는 API면 상대 쪽을 `getSession(false)`로 바꾸고 null을 처리한다.
 
 ## 핵심 코드
 ### 1) XML 빈: 풀 + 풀 대기 상한 + 쿠키 미저장
@@ -91,7 +108,18 @@ CloseableHttpClient client = HttpClients.custom()
         .build();
 ```
 
-### 4) 운영에서 확인
+### 4) 상대 서버: 세션이 필요 없는 API에서 세션 만들지 않기
+```java
+HttpSession session = request.getSession(false);   // 없으면 만들지 않는다
+String flag = (session != null) ? (String) session.getAttribute("someFlag") : null;
+```
+
+### 5) 남은 직접 생성 호출부 세기
+```bash
+grep -rn --include=*.java -E "new RestTemplate\(\)|new SimpleClientHttpRequestFactory\(\)|new HttpComponentsClientHttpRequestFactory\(\)" src/main/java
+```
+
+### 6) 운영에서 확인
 ```bash
 grep -n -E "<Connector|<Executor|maxThreads|executor=" $CATALINA_BASE/conf/server.xml
 jstack <PID> | grep -c '"http-nio-8080-exec-'     # 현재 요청 스레드 수
