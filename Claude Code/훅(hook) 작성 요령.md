@@ -1,6 +1,6 @@
 # 훅(hook) 작성 요령
 
-> 분류: Claude Code · 최근 갱신: 2026-10-28
+> 분류: Claude Code · 최근 갱신: 2026-11-06
 
 ## 한 줄 요약
 훅은 질문·답변·세션 시작마다 실행되므로 "할 일이 없을 때 얼마나 빨리 끝나는가"가 가장 중요하고, 훅의 출력은 Claude의 컨텍스트로 들어간다.
@@ -39,6 +39,15 @@
 - 짧은 영어·한글 프롬프트는 우연히 해석될 수 있지만, 한글이 많은 긴 프롬프트(예약 작업 프롬프트 등)는 글자가 깨져 `ConvertFrom-Json`이 실패한다.
 - 해석 실패를 "원문 문자열 전체로 비교"로 처리하면, 원문은 `{`로 시작하므로 "프롬프트가 `<scheduled-task`로 시작하면 건너뛴다" 같은 조건이 늘 거짓이 된다. 그 결과 무인 예약 작업 세션이 사람용 안내를 가로채고 "오늘 확인함" 표시까지 남겨, 정작 사람 세션에는 안내가 뜨지 않는다.
 - 해결: 입력을 읽기 전에 `[Console]::InputEncoding`을 UTF-8로 지정하고, 해석이 실패해도 원문에서 `"prompt":"<표시>` 문자열을 찾아 판정하는 대비책을 둔다. 고친 뒤에는 실제 긴 한글 입력, 깨진 JSON, 일반 프롬프트 세 가지로 직접 실행해 확인한다.
+
+### 도구 호출마다 도는 훅(PreToolUse·PostToolUse)의 비용
+- 도구 호출 전후 훅은 호출 수만큼 돈다. node 스크립트 하나도 기동에 약 50ms가 들어, 전후 훅 두 개를 기다리면 호출당 약 200ms가 늘었다. 50번 호출하는 작업이면 10초다.
+- 줄이는 순서
+  1. **꼭 필요한 이벤트만 기다린다.** 실행 시간을 재려고 PreToolUse에서 시작 시각을 적을 필요가 없다면 빼고, PostToolUse 입력에 들어오는 값과 앞뒤 기록으로 계산한다. 승인 대기 시간은 권한 요청 이벤트 시각부터 실행 시작까지로 따로 잰다.
+  2. **기록만 하는 훅은 기다리지 않게 한다.** 훅 스크립트는 일을 백그라운드 프로세스로 넘기고 바로 끝낸다. 결과를 Claude에 돌려줘야 하는 훅 하나만 동기로 둔다.
+  3. **평소에는 작은 파일만 본다.** 누적 로그는 보고할 때만 읽고, 평소에는 "작업 시작 시각" 같은 작은 상태 파일로 판단한다. 로그가 커져도 시간이 늘지 않는다.
+  4. 실행 파일을 C#·Go로 바꿔도 프로세스 기동 비용은 비슷하다. 먼저 호출 횟수와 대기를 줄인다.
+- 주기적으로 Claude에게 무언가 시키는 훅(예: N분마다 진행 보고)은 출력 안에 양식까지 넣으면 스킬을 따로 불러오는 왕복과 토큰을 아낀다. 서브에이전트 호출에는 출력하지 않아야 맡긴 작업 흐름이 끊기지 않는다.
 
 ### 설정에 넣는 명령
 - JSON 안에 긴 bash 한 줄을 직접 넣으면 따옴표와 역슬래시 이스케이프 때문에 다루기 어렵다. 스크립트 파일로 빼고 설정에는 실행 명령만 둔다.
@@ -138,6 +147,28 @@ if ($isScheduled) { exit 0 }                                 # 무인 세션에�
 printf '%s' '{"prompt":"<scheduled-task name=\"x\">한글이 많은 긴 프롬프트..."}' | powershell -NoProfile -File check.ps1   # 출력 없음
 printf '%s' '{"prompt":"<scheduled-task 깨진 JSON'                                | powershell -NoProfile -File check.ps1   # 출력 없음
 printf '%s' '{"prompt":"안녕"}'                                                  | powershell -NoProfile -File check.ps1   # 안내 출력
+```
+
+### 3-2) 도구 호출 뒤 훅: 기록은 백그라운드, 경계를 넘을 때만 출력
+```javascript
+// post-tool.js — PostToolUse 에만 동기로 건다. 바꿔야 할 곳: 상태 파일 위치, 보고 간격
+const fs = require('fs'), path = require('path'), { spawn } = require('child_process');
+const dir = path.join(process.env.HOME || process.env.USERPROFILE, '.claude', 'progress');
+const input = JSON.parse(fs.readFileSync(0, 'utf8'));            // 훅 입력 JSON
+// 1) 누적 기록은 분리된 프로세스에 맡기고 기다리지 않는다
+spawn(process.execPath, [path.join(__dirname, 'append-log.js'), JSON.stringify(input)],
+      { detached: true, stdio: 'ignore' }).unref();
+// 2) 평소에는 작은 상태 파일만 본다
+const stateFile = path.join(dir, input.session_id + '.json');
+const st = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, 'utf8')) : { start: Date.now(), reported: 0 };
+const slot = Math.floor((Date.now() - st.start) / (5 * 60 * 1000));  // 5분 경계
+if (slot > st.reported) {
+  st.reported = slot;
+  // 3) 보고할 때만 로그를 읽어 요약하고, 양식과 함께 출력(Claude 컨텍스트로 들어감)
+  console.log(`[progress] ${slot * 5} min elapsed. Report done/now/next/bottleneck in Korean, then continue.`);
+}
+fs.mkdirSync(dir, { recursive: true });
+fs.writeFileSync(stateFile, JSON.stringify(st));
 ```
 
 ### 4) 조건별로 직접 실행해 출력과 시간 확인
