@@ -1,9 +1,9 @@
 # 외부 API 판정 결과의 로컬 캐시 설계
 
-> 분류: Java·Spring · 최근 갱신: 2026-10-27
+> 분류: Java·Spring · 최근 갱신: 2026-11-09
 
 ## 한 줄 요약
-화면마다 필요한 외부 API 판정(권한 여부 등)을 Caffeine 같은 JVM 로컬 캐시에 둘 때 정해야 하는 것: 성공 캐시, 실패 캐시, 요청 범위 재사용, 다중 서버에서의 한계.
+화면마다 필요한 외부 API 판정(권한 여부 등)을 Caffeine 같은 JVM 로컬 캐시에 둘 때 정해야 하는 것: 성공 캐시, 실패 캐시와 만료마다 생기는 주기적 멈춤, 백그라운드 갱신, 요청 범위 재사용, 다중 서버에서의 한계.
 
 ## 내용
 **계층을 나눠 생각한다**
@@ -14,6 +14,11 @@
 - 실패는 보통 성공 캐시에 저장되지 않는다. 그러면 외부 서버가 죽어 있는 동안 화면을 열 때마다 타임아웃까지 기다리는 호출이 반복되고, 외부 서버 하나의 장애가 애플리케이션 전체의 화면 지연으로 번진다.
 - 실패를 짧게(수십 초) 기억해 그 동안은 바로 기본값(예: 차단)으로 답하면 지연이 "수십 초에 한 번"으로 줄어든다.
 - 대가: 일시적 오류 한 번에도 그 시간 동안 해당 사용자는 실패 상태로 보이고, 복구 반영이 그만큼 늦는다. 시간은 짧게 잡는다.
+- **실패 캐시가 끝날 때마다 생기는 주기적 멈춤**: 외부 서버에 연결이 안 되는 동안에는 실패 캐시(예: 30초)가 만료된 뒤 첫 요청이 연결 타임아웃(예: 2초)을 그대로 기다린다. 증상은 "가끔 느리고 대부분 빠름", 사용자마다 약 30초에 한 번 2초. 판정이 인터셉터에 있으면 그 판정을 쓰는 모든 화면에서 같은 일이 생긴다. 스레드 덤프를 연속으로 뜨면 요청 스레드가 인터셉터 → 캐시 로더 → HTTP 연결 대기에 서 있는 것으로 확인된다.
+
+**만료 때 요청을 기다리게 하지 않기 (stale-while-revalidate)**
+- 만료된 값이 있으면 요청은 그 값을 바로 쓰고, 외부 조회는 별도 스레드에서 한다. 실패하면 직전 값을 유지한다. 직전 값이 없을 때(로그인 직후 첫 화면)만 기다리거나 바로 기본값으로 답하고 재시도도 백그라운드로 한다.
+- Caffeine은 `refreshAfterWrite`가 이 동작을 한다(만료 전 갱신 시점이 지나면 다음 조회가 이전 값을 받고 비동기 갱신이 시작됨). 로더가 예외를 던지면 이전 값이 남는다.
 
 **수명(TTL) 정하기**
 - 짧을수록 설정 변경이 빨리 반영되지만 외부 호출이 그만큼 늘고 캐시가 비어 느린 화면도 잦아진다. 수명을 1/5로 줄이면 호출은 최대 5배다.
@@ -65,6 +70,24 @@ Permission resolve(String key) {
     } catch (Exception e) {
         failures.put(key, Boolean.TRUE);
         return Permission.DENIED;
+    }
+}
+```
+
+### 2-1) 만료 때 기다리지 않는 갱신 (refreshAfterWrite)
+```java
+private final LoadingCache<String, Permission> perms = Caffeine.newBuilder()
+        .refreshAfterWrite(5, TimeUnit.MINUTES)     // 이 시간이 지나면 다음 조회 때 백그라운드 갱신
+        .expireAfterWrite(60, TimeUnit.MINUTES)     // 갱신이 계속 실패해도 이 시간 뒤엔 버림
+        .maximumSize(50_000)
+        .executor(refreshPool)                      // 갱신 전용 스레드 풀
+        .build(key -> callRemote(key));             // 실패하면 예외 → 이전 값 유지
+
+Permission resolve(String key) {
+    try {
+        return perms.get(key);                      // 값이 있으면 만료 갱신 중에도 즉시 반환
+    } catch (Exception e) {
+        return Permission.DENIED;                   // 처음 조회가 실패한 경우만
     }
 }
 ```
@@ -123,4 +146,4 @@ public class PermissionInterceptor implements HandlerInterceptor {
 - 메모리 추정치는 측정값이 아니다. 항목이 커질 수 있으면 실제로 재 본다.
 
 ## 참고
-- Caffeine 위키 — Eviction, Population
+- Caffeine 위키 — Eviction, Population, Refresh

@@ -1,6 +1,6 @@
 # Agent Skills SKILL.md 위치(Claude Code와 Codex)
 
-> 분류: Claude Code · 최근 갱신: 2026-10-27
+> 분류: Claude Code · 최근 갱신: 2026-11-09
 
 ## 한 줄 요약
 스킬 파일명은 `SKILL.md`가 표준이지만 도구마다 찾는 폴더가 다르다. Claude Code는 `.claude/skills/`, OpenAI Codex는 `.agents/skills/`를 읽으므로, 한쪽에만 두면 다른 도구는 스킬로 자동 등록하지 않는다.
@@ -18,6 +18,9 @@
 - 스킬은 해당 작업이 시작될 때(설명과 맞을 때) 읽힌다. 항상 지켜야 하는 한 줄 규칙은 모든 도구가 매번 읽는 `AGENTS.md`/`CLAUDE.md`에 두고, 스킬에는 절차·체크리스트를 두는 식으로 나누는 게 좋다.
 - 나누는 기준은 "매 세션 읽어야 하는 규칙인가, 특정 작업 때만 필요한 절차인가"이다. 문서 양식, 배치 작업 골격 코드, 검증 명령 모음처럼 가끔 쓰는 것은 스킬로 뺀다. 다만 스킬을 안 부르고 작업하는 실수를 막으려면, 꼭 지킬 금지 규칙 한두 줄과 "만들 때는 ○○ 스킬을 따른다"는 참조는 지침 파일에 남긴다. 이렇게 정리하면 지침 파일이 절반 가까이 줄어든다.
 - Claude Code는 `CLAUDE.md`만 자동으로 읽는다. `AGENTS.md`를 쓰려면 `CLAUDE.md`에 `@AGENTS.md` import를 넣는다. 이미 열린 세션에는 반영되지 않고 새 세션부터 적용된다.
+- **Claude Code용 하네스를 Codex에도 적용할 때 빠지는 것**: Codex가 자동으로 받는 것은 사실상 `AGENTS.md`뿐이다. `.claude/rules`처럼 경로별로 자동 로드되는 노트, 훅(예: 네트워크 전환, 알림), `settings.json`의 파일 읽기 차단 권한은 Codex에 적용되지 않는다. 그래서 (1) 사용자 전역 지침 `~/.codex/AGENTS.md`에 "작업 전에 노트를 직접 읽는다", "비밀 설정 파일은 어떤 방법으로도 열지 않는다" 같은 문장을 넣고 (2) `~/.codex/config.toml`의 `[projects."<경로>"]` 신뢰 등록이 실제 경로와 맞는지 확인하고(없는 경로가 남아 있기 쉬움) (3) `.agents/skills`를 정션으로 연결한 뒤 `codex exec`로 지침과 스킬 목록이 보이는지 확인한다. 읽기 차단은 Codex에선 지침 문장으로만 막힌다는 점을 알고 쓴다.
+- 링크·에이전트 파일을 커밋하지 않으려면 저장소 공유 `.gitignore` 대신 `.git/info/exclude`(그 PC에만 적용)에 넣는다.
+- Windows PowerShell에서 `codex`를 그냥 부르면 npm이 만든 `codex.ps1`이 실행 정책에 막힐 수 있다. `codex.cmd`로 부른다. 단발 실행은 `codex.cmd exec --sandbox read-only "<질문>"`.
 
 ## 핵심 코드
 ### 1) 폴더 구조
@@ -71,7 +74,23 @@ git check-ignore -v .claude/skills/verify/SKILL.md      # ignore 규칙에 걸�
 git ls-files AGENTS.md CLAUDE.md .claude/skills          # 실제로 추적 중인 파일
 ```
 
-### 6) 에이전트 파일만 골라 무시하는 .gitignore
+### 6) Codex 전역 지침·신뢰 경로와 적용 확인
+```toml
+# ~/.codex/config.toml - 실제 저장소 경로만 남긴다
+[projects.'C:\work\my-web']
+trust_level = "trusted"
+[projects.'C:\work\my-mobile']
+trust_level = "trusted"
+```
+```bash
+# 정션과 exclude 등록 (저장소 루트, Windows cmd)
+mkdir .agents & mklink /J .agents\skills .claude\skills
+echo .agents/>> .git\info\exclude
+# 지침·스킬이 실제로 들어가는지 확인
+codex.cmd exec --sandbox read-only "지금 받은 지침 파일과 쓸 수 있는 스킬 이름을 나열해줘"
+```
+
+### 7) 에이전트 파일만 골라 무시하는 .gitignore
 ```gitignore
 # *.md 전체가 아니라 대상만 적는다
 AGENTS.md

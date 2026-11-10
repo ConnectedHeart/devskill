@@ -1,6 +1,6 @@
 # Windows PC에 Gitea로 git 서버 띄우기
 
-> 분류: Git · 최근 갱신: 2026-11-06
+> 분류: Git · 최근 갱신: 2026-11-09
 
 ## 한 줄 요약
 같은 망의 몇 사람과 저장소를 공유할 때는 Gitea(exe 하나, 내장 SQLite)를 한 PC에 띄우고 HTTP 포트 하나만 내부 대역에 열면 된다. 다른 사람은 git과 브라우저만 있으면 된다.
@@ -40,6 +40,8 @@
 | push가 404로 끊기고 `Everything up-to-date`가 표시됨 | Gitea를 띄운 셸에 `GIT_CONFIG_PARAMETERS='safe.bareRepository=explicit'`가 있어 서버의 git이 bare 저장소를 거부 | 그 변수를 지우고 Gitea를 띄운다(더블클릭·일반 창이면 해당 없음) |
 | 다른 PC의 첫 clone이 멈춤 | 브라우저 OAuth 로그인 중 임시 비밀번호 변경 화면으로 갔다가 홈으로 돌아가, Credential Manager가 승인 응답을 계속 기다림 | Ctrl+C 후 clone 재실행, "애플리케이션 승인"에서 승인 |
 | 비밀번호를 바꾼 뒤 계속 실패 | 저장된 자격 증명 | Windows 자격 증명 관리자에서 `git:http://<주소>:<포트>` 삭제 |
+| push만 403으로 거부, fetch·pull은 됨. 서버 로그에 로그인 200 뒤 pre-receive 단계 `User permission denied for writing` | 그 사용자에게 저장소 코드 **쓰기** 권한이 없음(팀 권한이 읽기이거나 팀 구성원이 아님). 보호 브랜치에 막힌 경우는 다른 메시지 | 조직 → 팀 편집에서 "일반 접근" + 코드 "쓰기", 구성원 목록 확인. 커밋은 다시 만들 필요 없이 push만 재시도 |
+| 가끔 한 번 `Failed to authenticate user`, 바로 다시 하면 성공. 서버 로그 `Failed to verify user: user does not exist [uid: 0, name: OAUTH_USER]` | Credential Manager가 브라우저 로그인으로 받은 OAuth 액세스 토큰(약 1시간)이 만료. 실패한 명령이 저장 토큰을 지우고, 다음 명령이 갱신 토큰으로 새 토큰을 받음 | 한 번 더 실행. 연속으로 실패하면 자격 증명 항목을 지우고 다시 로그인 |
 
 ## 핵심 코드
 ### 1) 받은 파일 확인과 실행
@@ -94,6 +96,13 @@ git clone http://<PC이름 또는 IP>:3000/<조직>/<저장소>.git
 ### 6) 이름이 풀리는지 다른 PC에서 확인
 ```bash
 ping <PC이름>      # IP가 표시되면 이름 해석 성공(응답 시간 초과여도 됨)
+```
+
+### 7) push 거부·인증 실패 원인을 서버 로그에서 찾기
+```powershell
+# 쓰기 권한 거부(403)와 토큰 만료 흔적 찾기 - 로그 경로는 설치 위치에 맞게
+Select-String -Path 'C:\gitea\log\gitea.log' -Pattern 'permission denied for writing','Failed to verify user' |
+  Select-Object -Last 20
 ```
 
 ## 주의할 점

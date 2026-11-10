@@ -15,7 +15,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기](Git/푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기.md) — force-push 대신 revert, 최신 순 revert, 함께 빼야 할 커밋·다른 저장소 영향, 빠지는 정의의 호출처 확인, worktree 작업과 긴 경로 오류
 - [format-patch와 am으로 커밋 옮기기와 적용 전 검증](Git/format-patch와 am으로 커밋 옮기기와 적용 전 검증.md) — git am·apply·cherry-pick 비교, --cherry-pick으로 안 넘어간 커밋 찾기, 패치 생성, am --keep-non-patch로 [태그] 유지, 커밋 제목 파일명, 선행 패치 순서, 임시 인덱스로 apply --cached --check, 일부 패치 제외 적용, 멈췄을 때 abort·3way·skip, -3 원리와 fake ancestor, 멈춘 상태 읽기, conflictStyle diff3, 적용 스크립트 사전 검사, PowerShell 글롭 미전개, 빠진 패치 번호, stash 후 적용
 - [git 한글 경로 깨짐과 스테이징 후 삭제된 파일](Git/git 한글 경로 깨짐과 스테이징 후 삭제된 파일.md) — core.quotepath, 터미널 인코딩, 인덱스에서 되살리기와 rm --cached, restore --staged
-- [Windows PC에 Gitea로 git 서버 띄우기](Git/Windows PC에 Gitea로 git 서버 띄우기.md) — 공유 방식 비교, 위험한 기본값 막기, ROOT_URL과 이름 해석, 방화벽 허용 규칙을 먼저 넣는 이유(취소=차단 규칙), 팀·협업자 권한, safe.bareRepository 상속으로 push 404, 첫 clone OAuth 멈춤
+- [Windows PC에 Gitea로 git 서버 띄우기](Git/Windows PC에 Gitea로 git 서버 띄우기.md) — 공유 방식 비교, 위험한 기본값 막기, ROOT_URL과 이름 해석, 방화벽 허용 규칙을 먼저 넣는 이유(취소=차단 규칙), 팀·협업자 권한, safe.bareRepository 상속으로 push 404, 첫 clone OAuth 멈춤, 쓰기 권한 없는 push 403, OAuth 토큰 만료로 한 번만 실패
 - [git 병합(3-way merge)과 리버트·체리픽이 섞일 때 결과](Git/git 병합(3-way merge)과 리버트·체리픽이 섞일 때 결과.md) — 공통 조상·양 끝 비교 규칙표, 넣고 뺀 변경의 상쇄, 리버트가 반대 브랜치로 넘어가는 조건, 리버트된 커밋 체리픽 실수, 작업트리에 잡힌 브랜치
 
 ## 인증·보안
@@ -36,7 +36,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 ## Java·Spring
 - [synchronized와 잠금 객체 나누기(lock striping)](Java·Spring/synchronized와 잠금 객체 나누기(lock striping).md) — 잠금 객체의 의미, 키 해시로 N개 잠금 고르기, JVM 한계
 - [Spring 트랜잭션 전파와 자동 커밋](Java·Spring/Spring 트랜잭션 전파와 자동 커밋.md) — 트랜잭션 매니저와 커넥션 풀의 역할, REQUIRES_NEW가 필요한 경우, 정리 작업을 트랜잭션 밖으로
-- [외부 API 판정 결과의 로컬 캐시 설계](Java·Spring/외부 API 판정 결과의 로컬 캐시 설계.md) — 성공·실패 캐시, request 속성과의 역할 구분, 다중 서버 한계
+- [외부 API 판정 결과의 로컬 캐시 설계](Java·Spring/외부 API 판정 결과의 로컬 캐시 설계.md) — 성공·실패 캐시, 실패 캐시 만료마다 생기는 주기적 멈춤과 refreshAfterWrite 백그라운드 갱신, request 속성과의 역할 구분, 다중 서버 한계
 - [Future로 외부 호출 전체 시간 제한하기](Java·Spring/Future로 외부 호출 전체 시간 제한하기.md) — connect/read 타임아웃의 빈틈, ExecutionException 벗기기, cancel의 한계
 - [RestTemplate JSON 호출의 숫자 타입과 타임아웃](Java·Spring/RestTemplate JSON 호출의 숫자 타입과 타임아웃.md) — Gson·json-simple·Jackson의 타입 차이, 전용 RestTemplate
 - [코드 점검에서 자주 나오는 결함 패턴](Java·Spring/코드 점검에서 자주 나오는 결함 패턴.md) — 순회 중 삭제, 예외 삼킴, 확장자 판별, 프록시를 거치지 않는 내부 호출, 문자열 == 비교, null 확인 순서, 단위 계산 인덱스, 루프 안 파라미터 재대입과 초기값 없는 선언, 래퍼의 인자 전달 누락, 기본값 if 블록에 갇힌 검사(괄호 위치), 검증 뒤 return 누락
@@ -50,6 +50,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [서블릿 필터 URL 패턴과 한글 파일명 깨짐](Java·Spring/서블릿 필터 URL 패턴과 한글 파일명 깨짐.md) — *.do에만 걸린 인코딩 필터, 확장자 없는 주소의 multipart 깨짐, {id:.+} 경로 변수가 확장자를 먹는 문제
 - [Spring에 선택적 두 번째 데이터소스 추가하기](Java·Spring/Spring에 선택적 두 번째 데이터소스 추가하기.md) — JNDI와 properties 직접 연결, 빈 기본값·lazy-init·autowire-candidate로 기동 유지, URL 없으면 기존 경로, DB 종류 메타데이터 판별, 트랜잭션 밖 직접 JDBC
 - [HttpClient 커넥션 풀 크기와 자기 서버 호출 교착](Java·Spring/HttpClient 커넥션 풀 크기와 자기 서버 호출 교착.md) — 생성 방식별 기본 풀(5·2·무제한), 싱글톤화로 생기는 병목, 동시 호출 수로 크기 정하기, maxThreads 40% 이내 이유, 풀 대기 상한, 공유 쿠키 저장소·시스템 프로퍼티 누락, 같은 풀 다른 타임아웃, 팩토리 값이 설정 키를 이기는 실제 타임아웃, 긴 기본 읽기 타임아웃을 물려받는 외부 호출, 남은 new RestTemplate 찾기, 쿠키 미저장 뒤 상대 서버 세션 증가
+- [Spring 정적 리소스 캐시 헤더(cache-period)와 버전 쿼리](Java·Spring/Spring 정적 리소스 캐시 헤더(cache-period)와 버전 쿼리.md) — Cache-Control 없는 정적 파일, cache-period와 VersionResourceResolver, 버전 없는 참조 찾기, 측정 데이터(메모리 캐시·1회 측정) 읽는 법
 - [반복 일정 전개 조회에서 기간 밖 반복 건너뛰기](Java·Spring/반복 일정 전개 조회에서 기간 밖 반복 건너뛰기.md) — 기간과 무관하게 펼치는 구조의 N+1, 종료 방식별 건너뛰기 조건과 근거, 메소드 지역 메모, 응답 바이트 비교·번갈아 측정·Com_select로 쿼리 수 세기
 
 ## DB·SQL
@@ -60,7 +61,8 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [DB별 SQL에서 조용히 틀리는 조건식 패턴](DB·SQL/DB별 SQL에서 조용히 틀리는 조건식 패턴.md) — Oracle || 와 - 우선순위, MySQL IN 안의 OR, BETWEEN 인자 순서, 날짜에 숫자 빼기, 시각 붙은 날짜 = 비교, ORDER BY 없는 순서 의존
 - [MySQL 조인 컬럼 문자셋 불일치로 인덱스를 못 쓰는 문제](DB·SQL/MySQL 조인 컬럼 문자셋 불일치로 인덱스를 못 쓰는 문제.md) — utf8mb4·utf8 조인의 EXPLAIN 증상, 상수 조건이 상대 테이블로 안 넘어가는 경우와 EXISTS·조건 명시 우회, 앱 연결 콜레이션으로 재기, CONVERT 변형으로 미리 재기, 콜레이션까지 맞춘 ALTER 생성, 데이터 있을 때 잠금·인덱스 길이·사전 점검, 변환 후 통계와 ANALYZE
 - [Oracle DB 링크와 원격 객체 존재 확인](DB·SQL/Oracle DB 링크와 원격 객체 존재 확인.md) — 링크 존재·접속·원격 객체·읽기 권한 단계별 확인, 단계별 ORA 오류 의미, 시노님, 링크 세션 닫기
-- [페이징 목록 쿼리가 느린 원인과 개선 측정](DB·SQL/페이징 목록 쿼리가 느린 원인과 개선 측정.md) — 쓰지 않는 1:N 조인과 DISTINCT, 카운트 중복, 계산값 정렬, 인덱스를 고르지 않는 경우, STRAIGHT_JOIN 실험, 2단계 페이징 위험, 결과 해시로 전후 비교
+- [페이징 목록 쿼리가 느린 원인과 개선 측정](DB·SQL/페이징 목록 쿼리가 느린 원인과 개선 측정.md) — 쓰지 않는 1:N 조인과 DISTINCT, 카운트 중복, 계산값 정렬, 인덱스를 고르지 않는 경우, STRAIGHT_JOIN 실험, 2단계 페이징 위험, TEXT 둘째 정렬 열을 첫째 열 경계로 좁히기, 뒤쪽 쪽 역순 읽기와 동률 보조키, 넓은 GROUP BY를 상관 서브쿼리로, 건수 = 전체 − 제외, SHOW EXPLAIN, 결과 해시로 전후 비교
+- [답글 트리 정렬(경로 문자열)과 인덱스](DB·SQL/답글 트리 정렬(경로 문자열)과 인덱스.md) — 경로 문자열로 트리 순서가 나오는 원리, TEXT·CLOB 정렬 불가, VARCHAR 변환 길이·인덱스 한도·내림차순 인덱스 버전, 정렬 열 추가와 설정값으로 읽기만 나누기, 원글 단위 쪽 나누기와 WITH RECURSIVE
 - [JDBC batch와 다건 INSERT, 일부 실패 처리](DB·SQL/JDBC batch와 다건 INSERT, 일부 실패 처리.md) — 세 방식의 왕복·실패 동작, 드라이버별 batch 효과(rewriteBatchedStatements, 프로시저), 문장 단위 롤백과 커밋 한 번, 반으로 나눠 재시도, Oracle INSERT ALL 시퀀스 문제, 다건 프로시저 요청
 - [PL-SQL 패키지 명세·본문과 프로시저 시그니처](DB·SQL/PL-SQL 패키지 명세·본문과 프로시저 시그니처.md) — 스펙·바디(선언부·구현부), 블록의 선언부·실행부·예외처리부, 시그니처·형식/실제 파라미터 용어, user_arguments 조회
 - [MariaDB 뷰 DEFINER 계정과 콜레이션 오류(1449·1267)](DB·SQL/MariaDB 뷰 DEFINER 계정과 콜레이션 오류(1449·1267).md) — 계정 이름 대소문자, 잠긴 DEFINER 계정 추가, 뷰 상수가 만들 때 콜레이션으로 저장되는 문제와 재현, 예외 변환기 null로 NPE만 보이는 경우
@@ -100,7 +102,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [훅(hook) 작성 요령](Claude Code/훅(hook) 작성 요령.md) — 빠르게 끝내는 방법, 훅 출력이 컨텍스트로 들어가는 점, SubagentStart/Stop과 Stop 훅에 끊기는 백그라운드 서브에이전트, PowerShell 5.1 입력 인코딩(CP949)으로 JSON 해석 실패, 도구 호출마다 도는 훅의 비용 줄이기(동기 훅 하나·백그라운드 기록·작은 상태 파일)
 - [예약 작업 무인 실행과 권한 규칙](Claude Code/예약 작업 무인 실행과 권한 규칙.md) — 고정 스크립트와 좁은 허용 규칙, 놓친 날 보충 장치의 구멍(UserPromptSubmit 훅으로 무인 세션 구분), 권한 요청 대기로 멈춘 실행, 목차 기반 요약
 - [로컬 환경 전환 불가 메시지](Claude Code/로컬 환경 전환 불가 메시지.md) — 메시지가 나오는 경우, + 버튼 세션은 실제로 로컬 실행, 재시작·폴더 재지정·정책 확인 순서
-- [Agent Skills SKILL.md 위치(Claude Code와 Codex)](Claude Code/Agent Skills SKILL.md 위치(Claude Code와 Codex).md) — SKILL.md 표준, .claude/skills와 .agents/skills 차이, AGENTS.md에 핵심 규칙 두기, 규칙·절차 분리 기준, CLAUDE.md import, 폴더 링크
+- [Agent Skills SKILL.md 위치(Claude Code와 Codex)](Claude Code/Agent Skills SKILL.md 위치(Claude Code와 Codex).md) — SKILL.md 표준, .claude/skills와 .agents/skills 차이, AGENTS.md에 핵심 규칙 두기, 규칙·절차 분리 기준, CLAUDE.md import, 폴더 링크, Codex에 빠지는 것(경로별 노트·훅·읽기 차단)과 전역 지침·신뢰 경로·info/exclude, codex.cmd
 - [커밋 메시지 Co-Authored-By 줄 끄기(attribution 설정)](Claude Code/커밋 메시지 Co-Authored-By 줄 끄기(attribution 설정).md) — settings.json attribution 항목, 적용 범위, push 전 커밋 메시지에서 줄 빼기와 diff 확인
 - [Claude Code 세션에서 Codex CLI로 교차 리뷰하기](Claude Code/Claude Code 세션에서 Codex CLI로 교차 리뷰하기.md) — 바깥 스크립트 방식의 문제(훅·비밀 diff·read-only 한계), 세션 안 스킬 절차와 판정표, 고른 diff만 보내기, 과정 보이게 하기, Windows 실행 정책·샌드박스 전역 설치 함정
 - [한 계정으로 여러 PC에서 Claude Code 쓰기](Claude Code/한 계정으로 여러 PC에서 Claude Code 쓰기.md) — PC별 인증, 공유 사용량 한도, PC마다 따로인 기록·설정, 약관
@@ -139,4 +141,5 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [달력 화면의 중복 동기 요청 없애기와 받은 응답 재사용](기타/달력 화면의 중복 동기 요청 없애기와 받은 응답 재사용.md) — 인자 대신 DOM에서 기간을 읽어 생기는 같은 요청 2회, 첫 응답으로 바로 그리기, 같은 달 클릭은 요청 0회, 지연 콜백이 다른 화면을 읽는 버그
 - [가로 메뉴 넘침 처리(폭을 재서 검색창 줄이고 메뉴 숨기기)](기타/가로 메뉴 넘침 처리(폭을 재서 검색창 줄이고 메뉴 숨기기).md) — absolute 입력창 겹침 원인, 넘친 메뉴가 표시 없이 사라지는 문제, 드래그 패널에서 미디어쿼리 대신 실측, 축소→숨김→… 단계, 여백 포함 측정, ResizeObserver·rAF
 - [MIDI 악보와 음원 재생을 맞춰 현재 음표 표시하기](기타/MIDI 악보와 음원 재생을 맞춰 현재 음표 표시하기.md) — mp3 자동 채보가 어려운 이유, tick→초 시각표, 카운트인과 피치 비교로 시작 오프셋 맞추기, 템포 흔들리는 녹음 한계, 재생 마디 기준 페이지 넘김, 반주+녹음 지연 보정
-- [정적 웹앱을 GitHub Pages PWA로 배포하고 홈 화면에 추가하기](기타/정적 웹앱을 GitHub Pages PWA로 배포하고 홈 화면에 추가하기.md) — Pages 무료 한도·약관, manifest·서비스 워커 오프라인, iOS 홈 화면 앱 저장소 분리, 웹뷰 APK와 한글 경로 Gradle 실패·JDK 17, 스토어 비용
+- [정적 웹앱을 GitHub Pages PWA로 배포하고 홈 화면에 추가하기](기타/정적 웹앱을 GitHub Pages PWA로 배포하고 홈 화면에 추가하기.md) — Pages 무료 한도·약관, manifest·서비스 워커 오프라인, iOS 홈 화면 앱 저장소 분리, 웹뷰 APK와 한글 경로 Gradle 실패·JDK 17, APK 재배포 없는 웹뷰 앱 자동 갱신, 설정 닫을 때 한 번 다시 그리기·인앱 브라우저 높이·가로 끌기, 스토어 비용
+- [프레임 화면 로딩 순서와 동기 XHR(onload 대신 DOMContentLoaded)](기타/프레임 화면 로딩 순서와 동기 XHR(onload 대신 DOMContentLoaded).md) — 앞 단계가 끝나야 시작하는 순서, 목록 조회를 문서 준비 시점에, 같은 출처 프레임의 메인 스레드 공유, 공용 트리 동기 확인을 일괄 결과로 대신하기, 프레임 미리 띄우기 위험, access log %t는 응답 끝난 시각
