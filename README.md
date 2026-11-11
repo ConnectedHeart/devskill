@@ -52,6 +52,8 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [HttpClient 커넥션 풀 크기와 자기 서버 호출 교착](Java·Spring/HttpClient 커넥션 풀 크기와 자기 서버 호출 교착.md) — 생성 방식별 기본 풀(5·2·무제한), 싱글톤화로 생기는 병목, 동시 호출 수로 크기 정하기, maxThreads 40% 이내 이유, 풀 대기 상한, 공유 쿠키 저장소·시스템 프로퍼티 누락, 같은 풀 다른 타임아웃, 팩토리 값이 설정 키를 이기는 실제 타임아웃, 긴 기본 읽기 타임아웃을 물려받는 외부 호출, 남은 new RestTemplate 찾기, 쿠키 미저장 뒤 상대 서버 세션 증가
 - [Spring 정적 리소스 캐시 헤더(cache-period)와 버전 쿼리](Java·Spring/Spring 정적 리소스 캐시 헤더(cache-period)와 버전 쿼리.md) — Cache-Control 없는 정적 파일, cache-period와 VersionResourceResolver, 버전 없는 참조 찾기, 측정 데이터(메모리 캐시·1회 측정) 읽는 법
 - [반복 일정 전개 조회에서 기간 밖 반복 건너뛰기](Java·Spring/반복 일정 전개 조회에서 기간 밖 반복 건너뛰기.md) — 기간과 무관하게 펼치는 구조의 N+1, 종료 방식별 건너뛰기 조건과 근거, 메소드 지역 메모, 응답 바이트 비교·번갈아 측정·Com_select로 쿼리 수 세기
+- [Spring @ResponseBody String 응답 한글 깨짐과 produces](Java·Spring/Spring @ResponseBody String 응답 한글 깨짐과 produces.md) — StringHttpMessageConverter 기본 ISO-8859-1, 요청만 맞추는 인코딩 필터, 매핑별 produces와 전역 컨버터 비교, 406 조건
+- [스레드 덤프 연속으로 응답 지연 지점 찾기](Java·Spring/스레드 덤프 연속으로 응답 지연 지점 찾기.md) — 느린 요청 고르기, 1초 간격 jstack 비교, connect·read 대기 구분, 닿지 않는 외부 서버 대기를 측정에서 빼기
 
 ## DB·SQL
 - [AUTO_INCREMENT가 건너뛰며 증가하는 이유](DB·SQL/AUTO_INCREMENT가 건너뛰며 증가하는 이유.md) — auto_increment_increment와 Galera, LAST_INSERT_ID와 MAX의 차이, DDL에 따라온 덤프 시작값
@@ -68,6 +70,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [MariaDB 뷰 DEFINER 계정과 콜레이션 오류(1449·1267)](DB·SQL/MariaDB 뷰 DEFINER 계정과 콜레이션 오류(1449·1267).md) — 계정 이름 대소문자, 잠긴 DEFINER 계정 추가, 뷰 상수가 만들 때 콜레이션으로 저장되는 문제와 재현, 예외 변환기 null로 NPE만 보이는 경우
 - [인덱스를 타는 조건과 온라인 인덱스 추가(INPLACE·LOCK=NONE)](DB·SQL/인덱스를 타는 조건과 온라인 인덱스 추가(INPLACE·LOCK=NONE).md) — 함수로 감싼 컬럼을 범위 조건으로, 경계값 대량 대조, 용도별 복합 인덱스와 잠금 범위, 온라인 DDL 옵션의 안전장치 역할, 메타데이터 잠금, Galera TOI
 - [MariaDB 버퍼 풀 크기를 재시작 없이 줄이기](DB·SQL/MariaDB 버퍼 풀 크기를 재시작 없이 줄이기.md) — SET GLOBAL로 바로 축소, 실제 캐시 사용량으로 크기 정하기, 동적·정적 변수 구분, 설정 파일 유지
+- [부모가 사라진 고아 행 찾기와 백업 후 정리](DB·SQL/부모가 사라진 고아 행 찾기와 백업 후 정리.md) — 한 항목만 500·NPE로 나타나는 증상, LEFT JOIN으로 찾기, 딸린 테이블 행 수·역참조 확인, INSERT 백업과 한 트랜잭션 삭제, 코드 null 검사
 
 ## 네트워크
 - [LDAP 연결 끊김 원인 구분](네트워크/LDAP 연결 끊김 원인 구분.md) — 오류 메시지별 의미, TTL 비교로 끊은 주체 찾기
@@ -143,3 +146,4 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [MIDI 악보와 음원 재생을 맞춰 현재 음표 표시하기](기타/MIDI 악보와 음원 재생을 맞춰 현재 음표 표시하기.md) — mp3 자동 채보가 어려운 이유, tick→초 시각표, 카운트인과 피치 비교로 시작 오프셋 맞추기, 템포 흔들리는 녹음 한계, 재생 마디 기준 페이지 넘김, 반주+녹음 지연 보정
 - [정적 웹앱을 GitHub Pages PWA로 배포하고 홈 화면에 추가하기](기타/정적 웹앱을 GitHub Pages PWA로 배포하고 홈 화면에 추가하기.md) — Pages 무료 한도·약관, manifest·서비스 워커 오프라인, iOS 홈 화면 앱 저장소 분리, 웹뷰 APK와 한글 경로 Gradle 실패·JDK 17, APK 재배포 없는 웹뷰 앱 자동 갱신, 설정 닫을 때 한 번 다시 그리기·인앱 브라우저 높이·가로 끌기, 스토어 비용
 - [프레임 화면 로딩 순서와 동기 XHR(onload 대신 DOMContentLoaded)](기타/프레임 화면 로딩 순서와 동기 XHR(onload 대신 DOMContentLoaded).md) — 앞 단계가 끝나야 시작하는 순서, 목록 조회를 문서 준비 시점에, 같은 출처 프레임의 메인 스레드 공유, 공용 트리 동기 확인을 일괄 결과로 대신하기, 프레임 미리 띄우기 위험, access log %t는 응답 끝난 시각
+- [판정 전 버튼 노출과 로딩 중 비활성 표시](기타/판정 전 버튼 노출과 로딩 중 비활성 표시.md) — 로딩 중 기본 버튼 클릭과 역할별 판정의 경쟁 상태, 숨김 대신 흐림·클릭 막기, 성공·실패 양쪽에서 풀기, 키보드 접근
