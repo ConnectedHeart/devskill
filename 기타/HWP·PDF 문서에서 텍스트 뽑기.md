@@ -1,6 +1,6 @@
 # HWP·PDF 문서에서 텍스트 뽑기
 
-> 분류: 기타 · 최근 갱신: 2026-10-27
+> 분류: 기타 · 최근 갱신: 2026-11-11
 
 ## 한 줄 요약
 HWP는 전용 바이너리라 일반 도구로 못 읽으므로 hwplib(Java)이나 pyhwp(Python) 같은 파서가 필요하고, PDF는 `pdftotext`로 뽑되 한글 CID 글꼴 데이터(poppler-data)가 없으면 한글만 빠진 채 추출된다.
@@ -15,6 +15,13 @@ HWP는 전용 바이너리라 일반 도구로 못 읽으므로 hwplib(Java)이�
 - `pdftotext 파일.pdf 결과.txt`(poppler)로 텍스트를 뽑는다. `-layout`을 주면 표 모양이 어느 정도 유지된다.
 - 한글 PDF에서 `Unknown character collection 'Adobe-Korea1'` 경고와 함께 영문·숫자만 남는다면 poppler의 CID 글꼴 데이터(poppler-data)가 설치되지 않은 것이다. 데이터를 설치하거나 다른 도구(한글/Word로 열어 텍스트 저장, Python `pdfplumber`·`PyMuPDF`)를 쓴다.
 - 텍스트 추출이 안 되는 스캔 PDF는 `pdftoppm`으로 페이지를 이미지로 만들어 보거나 OCR이 필요하다.
+
+### 서식의 "본문"만 뽑기: 표 칸 필드와 누름틀
+- 결재·보고 서식처럼 머리말·수신·결재란이 있는 문서에서 본문만 뽑으려면, 서식이 본문 자리에 붙인 **필드 이름**(예: `body`)을 찾는다.
+- 본문 자리는 두 가지로 만들어질 수 있다. ① 표 셀에 필드 이름을 준 "셀 필드" ② 문단 안 "누름틀"(클릭하여 입력, hwpx에서는 `<hp:fieldBegin type="CLICK_HERE" name="body">` … `<hp:fieldEnd>`). 표 셀 이름만 찾는 추출기는 누름틀 서식을 "본문 칸 없음"으로 보고 문서 전체를 뽑는다.
+- 찾는 순서: 셀 필드 → 누름틀 → 둘 다 없으면 문서 전체. 누름틀은 여러 문단·표 셀 안에 걸칠 수 있고, 안에 하이퍼링크 같은 다른 필드가 중첩될 수 있으므로 **같은 id의 끝**까지 짝을 맞춰 읽는다.
+- 본문을 안 쓴 문서는 누름틀에 "내용을 입력하세요" 같은 안내 문구만 남는다. 안내 문구만 있으면 빈 본문(null)으로 돌려야 AI 요약 등에 서식 껍데기가 넘어가지 않는다.
+- 확장자가 `.hwpx`인데 내용이 hwp 바이너리인 파일도 있다. 확장자만 믿고 고르면 열지 못하므로 zip 시그니처(`PK`)를 먼저 확인한다.
 
 ### 뽑은 텍스트의 한계
 - 슬라이드·표의 순서가 뒤섞이고 그림 안 글자는 빠진다. "문서에 없다"고 결론 내리기 전에 영문 키워드로 한 번 더 검색하고, 중요한 내용은 원본을 직접 연다.
@@ -99,7 +106,34 @@ static String hwpxToText(String path) throws Exception {
 }
 ```
 
-### 4) PDF 한글 누락·스캔 PDF 처리
+### 4) hwpx 누름틀(CLICK_HERE) 본문만 읽기
+```java
+// sectionN.xml 문서 순서대로 훑으며 name="body" 누름틀의 시작~짝이 맞는 끝 사이 글자만 모은다
+static String clickHereBody(Document doc, String fieldName) {
+    StringBuilder sb = new StringBuilder();
+    String bodyId = null;              // 본문 누름틀의 id (fieldEnd의 beginIDRef와 짝)
+    NodeList all = doc.getElementsByTagNameNS("*", "*");
+    for (int i = 0; i < all.getLength(); i++) {
+        Element el = (Element) all.item(i);
+        String tag = el.getLocalName();
+        if ("fieldBegin".equals(tag) && bodyId == null
+                && "CLICK_HERE".equals(el.getAttribute("type")) && fieldName.equals(el.getAttribute("name"))) {
+            bodyId = el.getAttribute("id");
+        } else if ("fieldEnd".equals(tag) && bodyId != null && bodyId.equals(el.getAttribute("beginIDRef"))) {
+            break;                     // 중첩된 다른 필드의 끝에서는 멈추지 않는다
+        } else if ("t".equals(tag) && bodyId != null) {
+            sb.append(el.getTextContent());
+        } else if ("p".equals(tag) && bodyId != null && sb.length() > 0) {
+            sb.append('\n');
+        }
+    }
+    if (bodyId == null) return null;   // 누름틀 없음 → 호출한 쪽이 문서 전체로
+    String text = sb.toString().trim();
+    return text.isEmpty() || text.equals(GUIDE_TEXT) ? "" : text;   // 안내 문구만 있으면 빈 본문
+}
+```
+
+### 5) PDF 한글 누락·스캔 PDF 처리
 ```bash
 pdffonts guide.pdf                                   # 글꼴·CID(Adobe-Korea1) 사용 여부 확인
 sudo apt-get install poppler-utils poppler-data      # Debian/Ubuntu

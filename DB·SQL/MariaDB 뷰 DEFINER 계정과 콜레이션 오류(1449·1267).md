@@ -1,6 +1,6 @@
 # MariaDB 뷰 DEFINER 계정과 콜레이션 오류(1449·1267)
 
-> 분류: DB·SQL · 최근 갱신: 2026-11-04
+> 분류: DB·SQL · 최근 갱신: 2026-11-11
 
 ## 한 줄 요약
 다른 서버의 덤프를 들여온 MariaDB/MySQL에서 뷰 조회가 `ERROR 1449`(DEFINER 계정 없음)나 `ERROR 1267`(Illegal mix of collations)로 실패할 수 있다. 앞의 것은 계정 이름 대소문자 차이, 뒤의 것은 뷰 안 문자 상수가 만들 때의 접속 콜레이션으로 저장되기 때문이다. 앱에서는 이 오류가 NPE 한 줄로만 보일 수 있다.
@@ -19,6 +19,11 @@
 - 앱 JDBC 연결의 콜레이션이 다르면(예: 뷰는 `utf8mb4_general_ci`, 드라이버 기본은 `utf8mb4_unicode_ci`) 쿼리의 상수와 뷰의 상수를 비교할 때 둘 다 "강제력 같음(COERCIBLE)"이라 어느 쪽을 따를지 못 정하고 오류를 낸다.
 - mysql 클라이언트로 같은 SQL을 돌리면 클라이언트 세션 콜레이션이 달라 **정상으로 나와 원인을 놓치기 쉽다.** `SET NAMES utf8mb4 COLLATE <앱과 같은 콜레이션>` 뒤에 실행해 재현한다.
 - 해결: 앱과 같은 콜레이션 세션에서 뷰를 정의 그대로 다시 만든다. 백업 먼저.
+
+### SQL 시간을 직접 잴 때 1267이 "빠른 결과"로 보이는 함정
+- 반대 방향도 있다. 뷰를 앱 콜레이션으로 만든 DB에서 기본 콜레이션이 다른 클라이언트 세션으로 SQL을 직접 실행·측정하면 1267로 **즉시 실패**한다.
+- 시간만 보고 넘기면 "이 SQL은 0.03초"처럼 빨라 보여 원인 분석을 틀린다. 실제로 느린 쿼리를 빠르다고 판단해 원인 후보에서 빼는 실수가 생긴다.
+- 직접 측정·실행 스크립트는 맨 앞에 앱과 같은 `SET NAMES … COLLATE …`를 넣고, 결과 행이 비었거나 `ERROR`가 섞였는지 시간보다 먼저 확인한다.
 
 ### 앱에서는 NPE로만 보이는 경우
 - Spring의 `SQLExceptionTranslator`가 모르는 오류 코드에 null을 돌려주고, 템플릿 코드가 그 결과를 그대로 `throw`하면 `throw null` → `NullPointerException`이 된다. 원래 SQL 오류 메시지가 사라진다.
@@ -53,7 +58,15 @@ SELECT doc_id,
   FROM docs;                                       -- 같은 세션에서 다시 만들면 상수가 unicode_ci
 ```
 
-### 4) 덤프 백업 (뷰만)
+### 4) 측정 스크립트에서 오류를 빠른 결과로 오해하지 않기
+```bash
+# 콜레이션을 앱과 맞추고, 오류는 실패로 처리해 시간과 섞이지 않게 한다
+mysql --show-warnings mydb -e "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+  SET profiling=1; SELECT COUNT(*) FROM v_pending_docs WHERE func_type <> '004'; SHOW PROFILES;" \
+  || echo "SQL 실패 - 시간 값 무시"
+```
+
+### 5) 덤프 백업 (뷰만)
 ```bash
 mysqldump --no-data --skip-triggers mydb v_pending_docs v_users > views-backup.sql
 ```

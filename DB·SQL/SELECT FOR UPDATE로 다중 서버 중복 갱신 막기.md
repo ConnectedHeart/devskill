@@ -1,6 +1,6 @@
 # SELECT FOR UPDATE로 다중 서버 중복 갱신 막기
 
-> 분류: DB·SQL · 최근 갱신: 2026-10-27
+> 분류: DB·SQL · 최근 갱신: 2026-11-12
 
 ## 한 줄 요약
 서버가 여러 대일 때 "한 번만 일어나야 하는 갱신"은 JVM 잠금으로 막을 수 없으므로, 대상 행을 `SELECT ... FOR UPDATE`로 잠그고 잠근 뒤 최신 값을 다시 판정한다.
@@ -21,6 +21,12 @@
 | 범위 | 같은 서버 안 | 모든 서버 |
 | 기다리는 동안 | 커넥션을 잡지 않음 | 요청마다 커넥션 하나를 잡고 대기 |
 | 없으면 | 결과는 맞지만 커넥션을 더 씀 | 서버 간 중복 갱신 발생 |
+
+### 대표 행 하나를 잠가 "범위 재계산"을 하나씩 돌리기
+- **문제 상황**: 부서 트리처럼 여러 행에서 파생값(예: 부서마다 "처리 부서명 + 팀명")을 계산해 저장하는 작업이 저장·이동마다 돈다. 두 요청이 동시에 돌면 먼저 읽은 오래된 트리로 계산한 쪽이 나중에 저장해 최신 값을 덮어쓸 수 있다.
+- **해결**: 재계산을 시작할 때 그 범위를 대표하는 행 하나(테넌트·회사의 루트 행 등)를 `SELECT ... FOR UPDATE`로 먼저 잠근다. 같은 범위의 재계산은 서버가 여러 대여도 한 번에 하나씩만 돈다. 잠금은 트랜잭션이 끝날 때까지 유지되므로 "잠금 → 목록 읽기 → 계산 → 바뀐 행만 UPDATE"를 한 트랜잭션에 둔다.
+- 데이터 변경(저장·이동)을 먼저 커밋하고 그 뒤에 재계산을 부르면, 마지막에 도는 재계산이 항상 최신 데이터를 읽는다.
+- 시험: 다른 DB 세션이 대표 행을 10초 잡고 있게 한 뒤 재계산을 부르면 약 10초 기다렸다가 정상으로 끝나는지 본다.
 
 ## 핵심 코드
 ### 1) 잠금 조회와 갱신 SQL
@@ -73,6 +79,30 @@ public Token refreshIfNeeded(Connection conn, String key) throws SQLException, I
 }
 ```
 Spring에서는 이 메서드를 `@Transactional(propagation = Propagation.REQUIRES_NEW)` 별도 빈으로 두고, 바깥에서 `synchronized`로 같은 서버 요청을 먼저 줄 세운다.
+
+### 4) 대표 행 잠금으로 범위 재계산 직렬화
+```sql
+-- 범위(테넌트)의 루트 행 하나만 잠근다
+SELECT id FROM departments
+ WHERE tenant_id = ? AND parent_id = 'ROOT'
+   FOR UPDATE;
+```
+```java
+@Transactional   // 잠금은 이 메서드가 끝나 커밋될 때까지 유지
+public int refreshDerivedNames(int tenantId) {
+    deptDao.lockRoot(tenantId);                        // 같은 테넌트 재계산은 여기서 줄을 선다
+    List<Dept> all = deptDao.findAll(tenantId);        // 잠근 뒤에 읽어야 최신 트리
+    int changed = 0;
+    for (Dept d : all) {
+        String value = computeName(d, all);
+        if (!value.equals(d.getDerivedName())) {       // 바뀐 행만 UPDATE
+            deptDao.updateDerivedName(d.getId(), value);
+            changed++;
+        }
+    }
+    return changed;
+}
+```
 
 ## 주의할 점
 - 잠금을 쥔 동안 외부 호출을 하면 그 시간만큼 커넥션과 행 잠금이 유지된다. 외부 호출 타임아웃을 짧게 둔다.

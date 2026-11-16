@@ -13,10 +13,11 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [병합 커밋에서 사라진 코드 찾기](Git/병합 커밋에서 사라진 코드 찾기.md) — 같은 부모를 재병합해 비교, 지워짐 판정 기준, 복구와 이력 맞추기
 - [git commit --fixup과 autosquash](Git/git commit --fixup과 autosquash.md) — 뒤에 커밋이 쌓인 뒤 예전 커밋 고치기, amend와의 차이, 푸시 전에만 쓰는 이유
 - [푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기](Git/푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기.md) — force-push 대신 revert, 최신 순 revert, 함께 빼야 할 커밋·다른 저장소 영향, 빠지는 정의의 호출처 확인, worktree 작업과 긴 경로 오류
-- [format-patch와 am으로 커밋 옮기기와 적용 전 검증](Git/format-patch와 am으로 커밋 옮기기와 적용 전 검증.md) — git am·apply·cherry-pick 비교, --cherry-pick으로 안 넘어간 커밋 찾기, 패치 생성, am --keep-non-patch로 [태그] 유지, 커밋 제목 파일명, 선행 패치 순서, 임시 인덱스로 apply --cached --check, 일부 패치 제외 적용, 멈췄을 때 abort·3way·skip, -3 원리와 fake ancestor, 멈춘 상태 읽기, conflictStyle diff3, 적용 스크립트 사전 검사, PowerShell 글롭 미전개, 빠진 패치 번호, stash 후 적용
+- [format-patch와 am으로 커밋 옮기기와 적용 전 검증](Git/format-patch와 am으로 커밋 옮기기와 적용 전 검증.md) — git am·apply·cherry-pick 비교, --cherry-pick으로 안 넘어간 커밋 찾기, 패치 생성, am --keep-non-patch로 [태그] 유지, am abort·skip·continue·quit 차이, 받는 쪽에 앞선 패치가 있어 생기는 충돌과 푸는 방향, 커밋 제목 파일명, 선행 패치 순서, 임시 인덱스로 apply --cached --check, 일부 패치 제외 적용, 멈췄을 때 abort·3way·skip, -3 원리와 fake ancestor, 멈춘 상태 읽기, conflictStyle diff3, 적용 스크립트 사전 검사, PowerShell 글롭 미전개, 빠진 패치 번호, stash 후 적용
 - [git 한글 경로 깨짐과 스테이징 후 삭제된 파일](Git/git 한글 경로 깨짐과 스테이징 후 삭제된 파일.md) — core.quotepath, 터미널 인코딩, 인덱스에서 되살리기와 rm --cached, restore --staged
 - [Windows PC에 Gitea로 git 서버 띄우기](Git/Windows PC에 Gitea로 git 서버 띄우기.md) — 공유 방식 비교, 위험한 기본값 막기, ROOT_URL과 이름 해석, 방화벽 허용 규칙을 먼저 넣는 이유(취소=차단 규칙), 팀·협업자 권한, safe.bareRepository 상속으로 push 404, 첫 clone OAuth 멈춤, 쓰기 권한 없는 push 403, OAuth 토큰 만료로 한 번만 실패
 - [git 병합(3-way merge)과 리버트·체리픽이 섞일 때 결과](Git/git 병합(3-way merge)과 리버트·체리픽이 섞일 때 결과.md) — 공통 조상·양 끝 비교 규칙표, 넣고 뺀 변경의 상쇄, 리버트가 반대 브랜치로 넘어가는 조건, 리버트된 커밋 체리픽 실수, 작업트리에 잡힌 브랜치
+- [패치가 이미 들어갔는지 내용으로 판정하기(apply --check -R)](Git/패치가 이미 들어갔는지 내용으로 판정하기(apply --check -R).md) — 제목 대조의 한계, 거꾸로·그대로 적용 시험으로 있음·없음·일부 다름 판정, 임시 인덱스로 다른 커밋 기준 시험, 여러 시점 비교, 묶음 순서 시험 적용과 겹치는 수정 빼기
 
 ## 인증·보안
 - [Keycloak audience(aud)와 azp 검증](인증·보안/Keycloak audience(aud)와 azp 검증.md) — aud·azp의 의미, Audience 매퍼 추가, API 서버 검증과 적용 순서
@@ -32,6 +33,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [화면 제한과 서버 측 접근 확인(IDOR)](인증·보안/화면 제한과 서버 측 접근 확인(IDOR).md) — 화면 숨김은 보안이 아님, ID로 데이터를 꺼내는 API만 확인 필요, 저장 전 대상의 소유 판정, 클라이언트가 보낸 값 신뢰 금지, 권한은 ID로·파일은 경로로 고르는 다운로드와 ID+순번 방식, 흩어진 판정의 구멍(1단계만 판정·통과 플래그·못 찾으면 통과·경로별 조합·관리자 API)과 판정 통일·전수조사 요령
 - [URL의 ID 파라미터 숨기기와 서명 링크 토큰](인증·보안/URL의 ID 파라미터 숨기기와 서명 링크 토큰.md) — 사용자 본인에게는 숨길 수 없는 이유, 목표별 방법(POST·replaceState·토큰), DB 저장 토큰과 HMAC 서명 토큰 비교, 새로고침·메일 링크·후속 요청 한계
 - [인증 실패 응답 문구와 거부 사유 로그](인증·보안/인증 실패 응답 문구와 거부 사유 로그.md) — 판정 기준·설정 상태를 흘리는 문구, code 유지·message만 일반화, request 속성으로 사유 전달, 값 없는 사유 로그와 로그 위조 방지
+- [DB 계정 비밀번호 해시가 노출되는 조회와 대신 쓸 조회](인증·보안/DB 계정 비밀번호 해시가 노출되는 조회와 대신 쓸 조회.md) — SHOW GRANTS·SHOW CREATE USER·mysql.user의 해시, information_schema 권한 조회, 새었을 때 찾기·가리기·변경·노출 범위 줄이기, 지침만으로는 못 막는 점
 
 ## Java·Spring
 - [synchronized와 잠금 객체 나누기(lock striping)](Java·Spring/synchronized와 잠금 객체 나누기(lock striping).md) — 잠금 객체의 의미, 키 해시로 N개 잠금 고르기, JVM 한계
@@ -54,10 +56,11 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [반복 일정 전개 조회에서 기간 밖 반복 건너뛰기](Java·Spring/반복 일정 전개 조회에서 기간 밖 반복 건너뛰기.md) — 기간과 무관하게 펼치는 구조의 N+1, 종료 방식별 건너뛰기 조건과 근거, 메소드 지역 메모, 응답 바이트 비교·번갈아 측정·Com_select로 쿼리 수 세기
 - [Spring @ResponseBody String 응답 한글 깨짐과 produces](Java·Spring/Spring @ResponseBody String 응답 한글 깨짐과 produces.md) — StringHttpMessageConverter 기본 ISO-8859-1, 요청만 맞추는 인코딩 필터, 매핑별 produces와 전역 컨버터 비교, 406 조건
 - [스레드 덤프 연속으로 응답 지연 지점 찾기](Java·Spring/스레드 덤프 연속으로 응답 지연 지점 찾기.md) — 느린 요청 고르기, 1초 간격 jstack 비교, connect·read 대기 구분, 닿지 않는 외부 서버 대기를 측정에서 빼기
+- [짧은 유효기간 읽기 캐시와 변경 시 비우기](Java·Spring/짧은 유효기간 읽기 캐시와 변경 시 비우기.md) — 호출 1회 Map·작업 1건 Map·서버 TTL 캐시 범위 고르기, 읽기 전용·짧은 만료·변경 지점 evict·끄는 스위치, 판정 메소드 안에서만 쓰기, Caffeine 예제와 테스트 항목
 
 ## DB·SQL
 - [AUTO_INCREMENT가 건너뛰며 증가하는 이유](DB·SQL/AUTO_INCREMENT가 건너뛰며 증가하는 이유.md) — auto_increment_increment와 Galera, LAST_INSERT_ID와 MAX의 차이, DDL에 따라온 덤프 시작값
-- [SELECT FOR UPDATE로 다중 서버 중복 갱신 막기](DB·SQL/SELECT FOR UPDATE로 다중 서버 중복 갱신 막기.md) — 행 잠금 후 재판정, JVM 잠금과 함께 쓰는 이유
+- [SELECT FOR UPDATE로 다중 서버 중복 갱신 막기](DB·SQL/SELECT FOR UPDATE로 다중 서버 중복 갱신 막기.md) — 행 잠금 후 재판정, JVM 잠금과 함께 쓰는 이유, 대표 행 하나를 잠가 범위 재계산을 하나씩 돌리기
 - [시각 컬럼 타입 선택(epoch millis와 날짜 타입)](DB·SQL/시각 컬럼 타입 선택(epoch millis와 날짜 타입).md) — 타임존 위험, UTC 기록 컬럼, MySQL·Oracle 컬럼 타입 변경 차이
 - [PostgreSQL 개요와 MySQL·Oracle 문법 차이](DB·SQL/PostgreSQL 개요와 MySQL·Oracle 문법 차이.md) — 특징, 문법 비교표, 식별자 소문자화와 엄격한 형변환
 - [DB별 SQL에서 조용히 틀리는 조건식 패턴](DB·SQL/DB별 SQL에서 조용히 틀리는 조건식 패턴.md) — Oracle || 와 - 우선순위, MySQL IN 안의 OR, BETWEEN 인자 순서, 날짜에 숫자 빼기, 시각 붙은 날짜 = 비교, ORDER BY 없는 순서 의존
@@ -67,10 +70,12 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [답글 트리 정렬(경로 문자열)과 인덱스](DB·SQL/답글 트리 정렬(경로 문자열)과 인덱스.md) — 경로 문자열로 트리 순서가 나오는 원리, TEXT·CLOB 정렬 불가, VARCHAR 변환 길이·인덱스 한도·내림차순 인덱스 버전, 정렬 열 추가와 설정값으로 읽기만 나누기, 원글 단위 쪽 나누기와 WITH RECURSIVE
 - [JDBC batch와 다건 INSERT, 일부 실패 처리](DB·SQL/JDBC batch와 다건 INSERT, 일부 실패 처리.md) — 세 방식의 왕복·실패 동작, 드라이버별 batch 효과(rewriteBatchedStatements, 프로시저), 문장 단위 롤백과 커밋 한 번, 반으로 나눠 재시도, Oracle INSERT ALL 시퀀스 문제, 다건 프로시저 요청
 - [PL-SQL 패키지 명세·본문과 프로시저 시그니처](DB·SQL/PL-SQL 패키지 명세·본문과 프로시저 시그니처.md) — 스펙·바디(선언부·구현부), 블록의 선언부·실행부·예외처리부, 시그니처·형식/실제 파라미터 용어, user_arguments 조회
-- [MariaDB 뷰 DEFINER 계정과 콜레이션 오류(1449·1267)](DB·SQL/MariaDB 뷰 DEFINER 계정과 콜레이션 오류(1449·1267).md) — 계정 이름 대소문자, 잠긴 DEFINER 계정 추가, 뷰 상수가 만들 때 콜레이션으로 저장되는 문제와 재현, 예외 변환기 null로 NPE만 보이는 경우
-- [인덱스를 타는 조건과 온라인 인덱스 추가(INPLACE·LOCK=NONE)](DB·SQL/인덱스를 타는 조건과 온라인 인덱스 추가(INPLACE·LOCK=NONE).md) — 함수로 감싼 컬럼을 범위 조건으로, 경계값 대량 대조, 용도별 복합 인덱스와 잠금 범위, 온라인 DDL 옵션의 안전장치 역할, 메타데이터 잠금, Galera TOI
+- [MariaDB 뷰 DEFINER 계정과 콜레이션 오류(1449·1267)](DB·SQL/MariaDB 뷰 DEFINER 계정과 콜레이션 오류(1449·1267).md) — 계정 이름 대소문자, 잠긴 DEFINER 계정 추가, 뷰 상수가 만들 때 콜레이션으로 저장되는 문제와 재현, 직접 측정 때 1267이 빠른 결과로 보이는 함정, 예외 변환기 null로 NPE만 보이는 경우
+- [인덱스를 타는 조건과 온라인 인덱스 추가(INPLACE·LOCK=NONE)](DB·SQL/인덱스를 타는 조건과 온라인 인덱스 추가(INPLACE·LOCK=NONE).md) — 함수로 감싼 컬럼을 범위 조건으로, 문자 컬럼과 숫자 비교(암묵적 형변환)·파생 테이블 조인 형 맞추기, UNION과 UNION ALL, 경계값 대량 대조, 용도별 복합 인덱스와 잠금 범위, 온라인 DDL 옵션의 안전장치 역할, 메타데이터 잠금, Galera TOI
 - [MariaDB 버퍼 풀 크기를 재시작 없이 줄이기](DB·SQL/MariaDB 버퍼 풀 크기를 재시작 없이 줄이기.md) — SET GLOBAL로 바로 축소, 실제 캐시 사용량으로 크기 정하기, 동적·정적 변수 구분, 설정 파일 유지
 - [부모가 사라진 고아 행 찾기와 백업 후 정리](DB·SQL/부모가 사라진 고아 행 찾기와 백업 후 정리.md) — 한 항목만 500·NPE로 나타나는 증상, LEFT JOIN으로 찾기, 딸린 테이블 행 수·역참조 확인, INSERT 백업과 한 트랜잭션 삭제, 코드 null 검사
+- [WITH RECURSIVE로 상위 계층 따라 올라가기](DB·SQL/WITH RECURSIVE로 상위 계층 따라 올라가기.md) — 재귀 CTE 동작 순서, 조건이 맞는 동안 부모로 올라가 멈춘 행 고르기, 루트 아래까지 경로 문자열, 순환·자기 참조·끊긴 부모 대비, 롤백으로 가정 시나리오 시험
+- [SQL에 DB 이름(스키마 접두어)을 박아 둘 때 생기는 문제](DB·SQL/SQL에 DB 이름(스키마 접두어)을 박아 둘 때 생기는 문제.md) — 복제 스키마로 띄우면 일부만 원래 DB를 읽는 증상, FK가 다른 스키마를 가리킴, Linux 대소문자 구분, 찾기·고치기·FK 확인 쿼리
 
 ## 네트워크
 - [LDAP 연결 끊김 원인 구분](네트워크/LDAP 연결 끊김 원인 구분.md) — 오류 메시지별 의미, TTL 비교로 끊은 주체 찾기
@@ -99,7 +104,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 ## Claude Code
 - [Remote Control로 휴대폰에서 이어 쓰기](Claude Code/Remote Control로 휴대폰에서 이어 쓰기.md) — 동작 구조, 켜는 방법, 끊기는 조건, 다른 기기에 세션 제목이 보이는 이유
 - [하네스 엔지니어링 개념](Claude Code/하네스 엔지니어링 개념.md) — 모델을 뺀 나머지 전부, 에이전트 루프·도구·컨텍스트·메모리·가드레일·피드백 루프, 지침 파일과 스킬 나누기, 사용자 규칙과 AI 관리 문서 분리·변경 감지, 승인 후 동기화, 규칙 충돌 검사
-- [지침과 지식 노트를 로딩 시점에 맞게 배치하기](Claude Code/지침과 지식 노트를 로딩 시점에 맞게 배치하기.md) — 기능별 로딩 시점, rules의 paths 지정 노트, 남길 것과 뺄 것, 로드 확인 방법
+- [지침과 지식 노트를 로딩 시점에 맞게 배치하기](Claude Code/지침과 지식 노트를 로딩 시점에 맞게 배치하기.md) — 기능별 로딩 시점, rules의 paths 지정 노트, 남길 것과 뺄 것, 로드 확인 방법, 늘어난 지침 분량 재고 줄이기(작업 종류별 합계, 조건부 절 분리, 전용 내용 이동, 중복·충돌 정리)
 - [권한 규칙으로 특정 명령만 자동 허용하기](Claude Code/권한 규칙으로 특정 명령만 자동 허용하기.md) — ask가 allow보다 우선, 입력 검사 래퍼만 allow, 자동 허용을 거둘 때의 함정, 지침 파일 보호의 빈틈
 - [MCP 서버 도입 판단과 Serena(jdtls)](Claude Code/MCP 서버 도입 판단과 Serena(jdtls).md) — MCP 장점, 망 분리 환경에서 안 맞는 이유, 로컬 DB 읽기 전용 조건, jdtls·Serena와 grep 비교
 - [훅(hook) 작성 요령](Claude Code/훅(hook) 작성 요령.md) — 빠르게 끝내는 방법, 훅 출력이 컨텍스트로 들어가는 점, SubagentStart/Stop과 Stop 훅에 끊기는 백그라운드 서브에이전트, PowerShell 5.1 입력 인코딩(CP949)으로 JSON 해석 실패, 도구 호출마다 도는 훅의 비용 줄이기(동기 훅 하나·백그라운드 기록·작은 상태 파일)
@@ -110,6 +115,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [Claude Code 세션에서 Codex CLI로 교차 리뷰하기](Claude Code/Claude Code 세션에서 Codex CLI로 교차 리뷰하기.md) — 바깥 스크립트 방식의 문제(훅·비밀 diff·read-only 한계), 세션 안 스킬 절차와 판정표, 고른 diff만 보내기, 과정 보이게 하기, Windows 실행 정책·샌드박스 전역 설치 함정
 - [한 계정으로 여러 PC에서 Claude Code 쓰기](Claude Code/한 계정으로 여러 PC에서 Claude Code 쓰기.md) — PC별 인증, 공유 사용량 한도, PC마다 따로인 기록·설정, 약관
 - [Claude 데스크톱 앱 메모리 사용량과 세션 보관](Claude Code/Claude 데스크톱 앱 메모리 사용량과 세션 보관.md) — 세션 프로세스·렌더러·터미널 탭별 크기, 보관이 하는 일(탭 속 서버도 종료), 오래된 세션은 메모리 무관, 줄이는 순서
+- [팀 지침 배포본 설치 때 기존 설정과의 충돌 처리](Claude Code/팀 지침 배포본 설치 때 기존 설정과의 충돌 처리.md) — 배포본에서 뺄 개인 환경 내용, 파일 종류별 덮어쓰기·합치기·보존, deny→ask→allow 우선, 설치/업데이트 판정·후보 많을 때·추적 중 파일 git rm --cached 주의, 빈·기존 파일 시험 저장소로 시험
 
 ## 기타
 - [JavaScript var 스코프와 중첩 루프 버그](기타/JavaScript var 스코프와 중첩 루프 버그.md) — 함수 스코프로 루프 변수가 공유되는 원인과 증상, 수정 방법
@@ -121,7 +127,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [목록 화면에서 선택 행과 전역 변수가 어긋나는 버그](기타/목록 화면에서 선택 행과 전역 변수가 어긋나는 버그.md) — 체크박스·Ctrl 클릭이 변수를 갱신하지 않아 다른 항목이 처리되는 원인, 행 안 드롭다운이 선택 행을 고치는 경우, 마우스로는 안 나고 키보드·selectOption에서만 나는 이유, 수정과 재현 요령
 - [외부 응답을 화면에 넣는 방식(텍스트 노드와 innerHTML)](기타/외부 응답을 화면에 넣는 방식(텍스트 노드와 innerHTML).md) — 태그가 글자로 보이는 이유, 컨트롤 노출, data-* 속성과 경로별 필터
 - [nohup으로 jar 백그라운드 실행과 java 옵션 순서](기타/nohup으로 jar 백그라운드 실행과 java 옵션 순서.md) — -D·-cp는 -jar 앞에, -jar이면 -cp 무시, nohup 출력 처리와 기동 로그
-- [HWP·PDF 문서에서 텍스트 뽑기](기타/HWP·PDF 문서에서 텍스트 뽑기.md) — hwplib·pyhwp, pdftotext의 한글 CID 글꼴(poppler-data) 누락, 추출 결과의 한계
+- [HWP·PDF 문서에서 텍스트 뽑기](기타/HWP·PDF 문서에서 텍스트 뽑기.md) — hwplib·pyhwp, pdftotext의 한글 CID 글꼴(poppler-data) 누락, 서식 본문만 뽑기(셀 필드·누름틀 CLICK_HERE·안내 문구만이면 빈 본문), 확장자와 실제 형식 불일치, 추출 결과의 한계
 - [날짜 기준 전송 배치의 재전송 설계](기타/날짜 기준 전송 배치의 재전송 설계.md) — 이력 날짜의 의미 맞추기, 행 없으면 생성, 서버 검증, 전송 플래그 되돌리기, 날짜 계산 한 곳에서, 갱신 키 유지
 - [파일 경로만 넘기는 서버 간 연동과 공유 저장소](기타/파일 경로만 넘기는 서버 간 연동과 공유 저장소.md) — 공유가 깨지면 200 + 빈 결과, 마운트·기준 경로·권한 확인, 로컬 개발 서버의 구조적 한계
 - [ps STAT 값(Ss+)과 남아 있는 tail -F 프로세스](기타/ps STAT 값(Ss+)과 남아 있는 tail -F 프로세스.md) — STAT 문자 의미, SSH로 띄운 tail이 세션 리더가 되는 이유, grep에 걸리는 로그 경로
@@ -147,3 +153,9 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [정적 웹앱을 GitHub Pages PWA로 배포하고 홈 화면에 추가하기](기타/정적 웹앱을 GitHub Pages PWA로 배포하고 홈 화면에 추가하기.md) — Pages 무료 한도·약관, manifest·서비스 워커 오프라인, iOS 홈 화면 앱 저장소 분리, 웹뷰 APK와 한글 경로 Gradle 실패·JDK 17, APK 재배포 없는 웹뷰 앱 자동 갱신, 설정 닫을 때 한 번 다시 그리기·인앱 브라우저 높이·가로 끌기, 스토어 비용
 - [프레임 화면 로딩 순서와 동기 XHR(onload 대신 DOMContentLoaded)](기타/프레임 화면 로딩 순서와 동기 XHR(onload 대신 DOMContentLoaded).md) — 앞 단계가 끝나야 시작하는 순서, 목록 조회를 문서 준비 시점에, 같은 출처 프레임의 메인 스레드 공유, 공용 트리 동기 확인을 일괄 결과로 대신하기, 프레임 미리 띄우기 위험, access log %t는 응답 끝난 시각
 - [판정 전 버튼 노출과 로딩 중 비활성 표시](기타/판정 전 버튼 노출과 로딩 중 비활성 표시.md) — 로딩 중 기본 버튼 클릭과 역할별 판정의 경쟁 상태, 숨김 대신 흐림·클릭 막기, 성공·실패 양쪽에서 풀기, 키보드 접근
+- [같은 AJAX 요청이 겹칠 때 합치기(진행 중 표시와 변경 세대)](기타/같은 AJAX 요청이 겹칠 때 합치기(진행 중 표시와 변경 세대).md) — 여러 시점 호출이 쌓여 생기는 중복, inFlight·dirtyGen으로 한 번만+변경 뒤 재조회, 초기화 호출 무시, 출발 시점별 실측(뒤로 미루면 오히려 느림), 보이는 시간과 끝난 시간 따로 재기
+- [웹 문서 편집기의 대용량 리소스 로딩 지연과 캐시(wasm·서비스 워커)](기타/웹 문서 편집기의 대용량 리소스 로딩 지연과 캐시(wasm·서비스 워커).md) — 단계별 측정으로 몫 나누기, no-cache·304 없음, 입력용 모듈 늦게 불러오기, 편집기 재사용, 서버 캐시 설정, 서비스 워커 조건(HTTPS·버전·정적만·끄는 스위치·opaque)
+- [보기 화면에서 contenteditable 막기(속성 제거와 false)](기타/보기 화면에서 contenteditable 막기(속성 제거와 false).md) — 저장본에 남은 편집 속성, 보기 화면에서 막아 과거 문서까지 해결, false가 재저장·재사용에 남기는 흔적, 저장 API 권한 확인
+- [성능 측정값이 튈 때 측정 밖 부하 가려내기](기타/성능 측정값이 튈 때 측정 밖 부하 가려내기.md) — 한 회차만 튀는 모양, 접근 로그와 사건 기록 시각 대조, 공용 서버·DB·메모리 간섭, 망 전환 감시 후 재측정, 원래 평균을 남기는 보고
+- [XML 응답의 빈 요소와 firstChild.nodeValue 오류](기타/XML 응답의 빈 요소와 firstChild.nodeValue 오류.md) — 빈 요소의 firstChild null, CDATA 채우기가 새 응답 경로에서 빠질 때 트리가 멈추는 증상, 원인 좁히기, 클라이언트·서버 수정
+- [주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기)](기타/주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기).md) — 창 방식 오차와 주기 줄이기, 저장된 값의 뜻을 바꿀 때 1회 변환·기본값·롤백, 파생 행 부모 키 실수와 보정 SQL, 경우표로 발송 시각 시험
