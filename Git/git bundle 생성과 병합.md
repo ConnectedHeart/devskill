@@ -1,6 +1,6 @@
 # git bundle 생성과 병합
 
-> 분류: Git · 최근 갱신: 2026-10-27
+> 분류: Git · 최근 갱신: 2026-11-16
 
 ## 한 줄 요약
 `git bundle`은 저장소(또는 일부 브랜치)를 파일 하나로 묶어 네트워크 없이 옮기는 방법이고, 받는 쪽에서는 그 파일을 원격 저장소처럼 clone/fetch 한다.
@@ -25,6 +25,13 @@
 - 경로나 URL을 직접 주면 그런 규칙이 없어서, 커밋만 저장소에 넣고 끝 커밋을 `.git/FETCH_HEAD`에 적어 둔다. 로컬 브랜치는 생기지 않는다.
 - 그래서 fetch 뒤에 `git merge <브랜치명>`을 하면 번들 내용이 아니라 **예전부터 있던 같은 이름의 로컬 브랜치**가 병합되거나, 없으면 "not something we can merge" 오류가 난다. `git merge FETCH_HEAD`를 써야 한다.
 - `FETCH_HEAD`는 다음 fetch/pull 때 덮어써지므로 fetch 직후에 병합한다. `git pull <경로> <브랜치>`가 내부적으로 하는 일이 `fetch` + `merge FETCH_HEAD`다.
+
+### 갈라진 브랜치만 작게 담기와 이력 없는 스냅샷
+- 다른 저장소에서 갈라져 나온 브랜치(사이트 전용 브랜치 등)를 넘길 때, 받는 쪽에 원본 저장소가 있으면 **두 쪽이 마지막으로 같이 가진 커밋**(`git merge-base`) 이후만 담는다. 전체 1GB짜리 이력이 수십 MB로 준다. 받는 쪽 원본이 그 커밋보다 오래됐으면 verify가 선행 커밋 없음으로 실패하므로 먼저 fetch하게 한다.
+- 받는 쪽에 아무것도 없고 이력도 필요 없으면 `commit-tree`로 현재 트리만 담은 부모 없는 커밋을 만들어 번들로 담는다. 작업 폴더는 건드리지 않는다. 대신 받는 쪽에서 원본과 병합·체리픽은 할 수 없다.
+- 번들 파일로 clone하면 `origin`이 그 파일 경로를 가리킨다. 파일을 옮기거나 지우면 fetch가 실패하므로 실제 원격이 생기면 `remote set-url`로 바꾼다.
+- 지금 체크아웃된 브랜치 이름으로는 `fetch <번들> 브랜치:브랜치`가 거부된다. 다른 이름으로 받거나 `git pull <번들> <브랜치>`를 쓴다.
+- 받는 쪽 브랜치 이름과 겹치지 않게 `fetch <번들> 브랜치:refs/remotes/<이름>/브랜치`처럼 원격 추적 이름으로 받아 병합하면, 상대가 보낸 것과 내 브랜치가 구분된다.
 
 ### --no-ff
 - fast-forward는 내 브랜치에 새 커밋이 없을 때 병합 커밋 없이 포인터만 옮기는 기본 동작이다. 이력이 한 줄이 되어 어디까지가 들어온 커밋인지 남지 않는다.
@@ -71,7 +78,27 @@ git remote add usb /<경로>/repo.bundle
 git fetch usb                            # usb/<브랜치> 로 받아짐
 ```
 
-### 5) 큰 번들 나누기와 합치기
+### 5) 갈라진 브랜치만 담기 / 이력 없는 스냅샷
+```bash
+# 원본(main)과 마지막으로 공유한 커밋 이후만 (받는 쪽에 원본 저장소가 있을 때)
+base=$(git merge-base main site-branch)
+git bundle create ../site.bundle "$base"..site-branch
+git -C <받는 쪽 저장소> bundle verify ../site.bundle   # is okay 확인
+
+# 받는 쪽에서 원격 추적 이름으로 받아 병합
+git fetch ../site.bundle site-branch:refs/remotes/vendor/site-branch
+git merge vendor/site-branch
+```
+```powershell
+# 이력 없이 현재 소스만 (작업 폴더는 그대로)
+$c = git commit-tree 'site-branch^{tree}' -m 'snapshot'
+git branch snapshot $c
+git bundle create ..\snapshot.bundle snapshot
+git branch -D snapshot
+# 받는 쪽: git clone -b snapshot snapshot.bundle site-src
+```
+
+### 6) 큰 번들 나누기와 합치기
 ```bash
 split -b 1000m -d ../repo.bundle ../repo.bundle.part   # repo.bundle.part00, part01 ...
 cat repo.bundle.part* > repo.bundle                     # 받는 쪽에서 합치기

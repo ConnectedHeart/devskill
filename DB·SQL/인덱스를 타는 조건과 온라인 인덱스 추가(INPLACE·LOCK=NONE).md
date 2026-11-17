@@ -1,6 +1,6 @@
 # 인덱스를 타는 조건과 온라인 인덱스 추가(INPLACE·LOCK=NONE)
 
-> 분류: DB·SQL · 최근 갱신: 2026-11-11
+> 분류: DB·SQL · 최근 갱신: 2026-11-16
 
 ## 한 줄 요약
 인덱스 컬럼을 함수로 감싼 조건은 인덱스를 못 쓰므로 같은 의미의 범위 조건으로 바꾸고, 앞 컬럼부터 맞춰 찾는 복합 인덱스는 쿼리 용도마다 따로 둔다. 운영 MariaDB/MySQL에 인덱스를 넣을 때는 `ALGORITHM=INPLACE, LOCK=NONE`을 적어 잠금 방식으로 조용히 바뀌는 것을 막고, Galera에서는 그래도 쓰기가 멈추니 업무 외 시간에 한다.
@@ -17,6 +17,17 @@
 - 행마다 `EXISTS (SELECT 1 FROM shares WHERE target_id = f.file_id)`를 검사하는 목록이면, 인덱스를 추가해도 형이 다르면 효과가 작다(실측 1.07초 → 인덱스만 0.64초 → 형까지 맞추면 0.005초).
 - 해결: **숫자 쪽을 문자로** 바꿔 비교한다(MySQL `CONCAT(f.file_id, '')`, Oracle `TO_CHAR(f.file_id)`). 인덱스가 있는 컬럼 쪽은 손대지 않는 것이 원칙이다. 문자 쪽을 숫자로 바꾸면 `'007'`과 `7`이 같아지는 등 의미가 달라질 수 있다.
 - 파생 테이블(서브쿼리 결과)과 조인할 때도 같다. 파생 테이블이 문자 ID를 내고 바깥이 숫자 ID로 조인하면 옵티마이저가 자동 키를 못 쓴다. 이때는 파생 테이블 쪽 열을 바깥 형으로 맞춰(`CAST(id AS UNSIGNED)`) 내보내면 조인 키를 쓴다(실측 3초 → 0.35초). 값이 모두 숫자 문자열인지 먼저 확인한다.
+
+### 긴 문자 컬럼 하나로 찾는 확인 쿼리(접두 인덱스)
+- "이 파일 경로를 쓰는 행이 있나"처럼 PK가 아닌 긴 문자 컬럼 하나로 `COUNT`하는 확인 쿼리는, 인덱스가 없으면 매번 전체를 훑고(EXPLAIN `type=ALL`) 행 수에 비례해 느려진다(실측 115만 행 0.94초 → 인덱스 후 0.0008초). 삭제 대상마다 한 번씩 돌면 그 배수만큼 쌓인다.
+- 로컬 데이터가 작아 재현이 안 되면, 같은 데이터를 임시 테이블에 여러 번 복사해 행을 늘려 재 보면 운영 규모의 시간을 추정할 수 있다.
+- MySQL/MariaDB InnoDB 인덱스 키 한도는 3072바이트다. `VARCHAR(1020)` utf8mb4(글자당 최대 4바이트)는 전체로 걸 수 없으므로 앞부분만 색인하는 **접두 인덱스** `(col(255))`를 쓴다. 접두가 같은 후보는 DB가 원래 값으로 다시 비교하므로 결과는 틀리지 않고, 경로처럼 앞부분에서 대부분 갈리면 효과도 같다. Oracle은 그 길이 제한 안이면 전체 컬럼으로 만든다.
+
+### 인덱스 만드는 문법(MySQL `ADD KEY`와 `CREATE INDEX`, Oracle)
+- MySQL/MariaDB에서 `KEY`와 `INDEX`는 같은 뜻이다. `ALTER TABLE t ADD KEY idx (a, b)`와 `CREATE INDEX idx ON t (a, b)`는 같은 결과다. `ALTER TABLE` 형식은 한 문장에 인덱스 여러 개를 붙여 큰 테이블을 한 번만 다시 쓰게 할 수 있다.
+- Oracle·Tibero에는 `ADD KEY` 문법이 없고 일반 인덱스는 `CREATE INDEX`로만 만든다. `ALTER TABLE`로 인덱스가 생기는 것은 PK·UNIQUE 제약을 걸 때뿐이다.
+- 이미 있을 때: MySQL "Duplicate key name", Oracle 같은 이름 ORA-00955, **같은 컬럼 조합**의 인덱스가 이미 있으면 ORA-01408(UNIQUE 제약의 인덱스 포함). 그 문장만 실패한다.
+- Oracle 함수 인덱스(`TO_NUMBER(col)`)는 숫자로 바꿀 수 없는 값이 한 행이라도 있으면 만들어지지 않는다. 먼저 `TRANSLATE`로 숫자 아닌 글자가 있는 행 수를 센다.
 
 ### UNION과 UNION ALL
 - `UNION`은 결과 전체의 중복을 지우려고 정렬·해시를 한 번 더 한다. 넓은 행이나 큰 결과에서는 이 비용이 크다.
@@ -53,6 +64,23 @@ SELECT x.* FROM (
     UNION ALL
     SELECT CAST(s.target_id AS UNSIGNED), 'D' FROM shares s WHERE s.target_type = 'D' AND s.user_id = ?
 ) x JOIN files f ON f.file_id = x.item_id AND x.kind = 'F';
+```
+
+### 긴 문자 컬럼 접두 인덱스와 DB별 인덱스 문법
+```sql
+-- MySQL/MariaDB: VARCHAR(1020) utf8mb4 → 앞 255자만 색인
+CREATE INDEX idx_attach_path ON attachments (file_path(255));
+-- 같은 뜻 (여러 개를 한 번에 붙이면 테이블 재작성 1회)
+ALTER TABLE orders ADD KEY idx_orders_list (tenant_id, created_date, order_id),
+                   ADD KEY idx_orders_user (tenant_id, user_id);
+EXPLAIN SELECT COUNT(*) FROM attachments WHERE file_path = ?;   -- type=ALL → ref 확인
+
+-- Oracle/Tibero: CREATE INDEX만
+CREATE INDEX idx_attach_path ON attachments (file_path);
+-- 함수 인덱스 전에 숫자로 못 바꾸는 값이 있는지 (0이어야 함)
+SELECT COUNT(*) FROM orders
+ WHERE LENGTH(TRIM(TRANSLATE(sort_key, '0123456789', ' '))) > 0;
+CREATE INDEX idx_orders_sort ON orders (tenant_id, TO_NUMBER(sort_key));
 ```
 
 ### 1) 함수 조건 → 범위 조건 (MySQL / Oracle)

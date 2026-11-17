@@ -1,6 +1,6 @@
 # SELECT FOR UPDATE로 다중 서버 중복 갱신 막기
 
-> 분류: DB·SQL · 최근 갱신: 2026-11-12
+> 분류: DB·SQL · 최근 갱신: 2026-11-16
 
 ## 한 줄 요약
 서버가 여러 대일 때 "한 번만 일어나야 하는 갱신"은 JVM 잠금으로 막을 수 없으므로, 대상 행을 `SELECT ... FOR UPDATE`로 잠그고 잠근 뒤 최신 값을 다시 판정한다.
@@ -27,6 +27,10 @@
 - **해결**: 재계산을 시작할 때 그 범위를 대표하는 행 하나(테넌트·회사의 루트 행 등)를 `SELECT ... FOR UPDATE`로 먼저 잠근다. 같은 범위의 재계산은 서버가 여러 대여도 한 번에 하나씩만 돈다. 잠금은 트랜잭션이 끝날 때까지 유지되므로 "잠금 → 목록 읽기 → 계산 → 바뀐 행만 UPDATE"를 한 트랜잭션에 둔다.
 - 데이터 변경(저장·이동)을 먼저 커밋하고 그 뒤에 재계산을 부르면, 마지막에 도는 재계산이 항상 최신 데이터를 읽는다.
 - 시험: 다른 DB 세션이 대표 행을 10초 잡고 있게 한 뒤 재계산을 부르면 약 10초 기다렸다가 정상으로 끝나는지 본다.
+- **잠근 뒤에 읽어야 하는 이유(REPEATABLE READ)**: MySQL/InnoDB 기본 격리 수준은 트랜잭션의 첫 일반 조회 시점 스냅샷을 계속 본다. 잠금보다 먼저 목록을 읽어 두면, 잠금을 기다리는 사이 앞선 재계산이 커밋한 값을 못 보고 옛 스냅샷으로 계산한다.
+- **대가**: 대표 행을 트랜잭션 끝까지 쥐고 있으므로 재계산이 느리거나 다른 긴 트랜잭션에 막히면, 같은 행을 잠그려는 요청이 줄줄이 기다린다. 막으려는 경쟁이 "몇십 ms 안에 겹치는 드문 경우이고 다시 실행하면 바로잡히는" 정도라면 잠금을 빼는 것도 선택지다.
+- **잠금 없는 대안: 조건부 UPDATE**: 읽은 값을 조건에 넣어 `UPDATE ... SET value = ? WHERE id = ? AND value = <읽을 때 값>`으로 쓴다. 읽은 뒤 누가 바꿨으면 0건이 되어 덮어쓰지 않는다(낙관적 방식). 긴 잠금이 없어지고 덮어쓰기 경쟁도 대부분 막힌다.
+- 운영에서 "버튼을 누르니 다른 기능이 멈췄다"는 문의가 오면, 로컬에서 한 행만 잠겨도 운영은 PK가 없거나 트리거가 큰 트랜잭션을 만들어 넓게 잠길 수 있다. 멈춘 동안 열린 트랜잭션과 잠금 대기를 먼저 조회한다(아래 5).
 
 ## 핵심 코드
 ### 1) 잠금 조회와 갱신 SQL
@@ -102,6 +106,27 @@ public int refreshDerivedNames(int tenantId) {
     }
     return changed;
 }
+```
+
+### 5) 멈췄을 때 열린 트랜잭션·잠금 대기 보기 (MySQL 8 / MariaDB)
+```sql
+-- 오래 열린 트랜잭션
+SELECT trx_id, trx_state, trx_started,
+       TIMESTAMPDIFF(SECOND, trx_started, NOW()) AS sec, trx_mysql_thread_id, trx_query
+  FROM information_schema.innodb_trx
+ ORDER BY trx_started;
+-- MariaDB: 누가 누구를 막는지
+SELECT * FROM information_schema.innodb_lock_waits;
+-- 막고 있는 연결을 끊으면 그 트랜잭션은 롤백된다
+-- KILL <trx_mysql_thread_id>;
+```
+
+### 6) 잠금 없는 조건부 UPDATE
+```sql
+-- 읽을 때 값이 그대로일 때만 덮어쓴다 (영향 행 0이면 누가 먼저 바꾼 것)
+UPDATE departments
+   SET derived_name = ?
+ WHERE id = ? AND tenant_id = ? AND derived_name = ?;
 ```
 
 ## 주의할 점

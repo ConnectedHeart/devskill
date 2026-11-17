@@ -6,7 +6,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - 같은 주제는 한 파일에 계속 보탭니다.
 
 ## Git
-- [git bundle 생성과 병합](Git/git bundle 생성과 병합.md) — 저장소를 파일 하나로 옮기는 방법, FETCH_HEAD로 병합하는 이유, --no-ff
+- [git bundle 생성과 병합](Git/git bundle 생성과 병합.md) — 저장소를 파일 하나로 옮기는 방법, FETCH_HEAD로 병합하는 이유, --no-ff, 갈라진 브랜치만 merge-base 이후로 담기, commit-tree 이력 없는 스냅샷, 체크아웃 브랜치 fetch 거부, 원격 추적 이름으로 받기
 - [cherry-pick 충돌 해결과 검증](Git/cherry-pick 충돌 해결과 검증.md) — 선행 커밋 찾기와 순서, 충돌이 많은 이유 3가지, 선행 커밋 필요와 옆줄 겹침 구분, worktree·merge-tree 시험, 연속 작업 묶음 중간 시점 결함, push 전 rebase --onto로 하나 빼기, 공백만 다른 충돌, 검증 절차
 - [git stash 적용 충돌 알아보기와 오래된 stash 정리](Git/git stash 적용 충돌 알아보기와 오래된 stash 정리.md) — Stashed changes 표시와 MERGE_HEAD 부재, reflog로 stash 경위 추적, HEAD 쪽 해결, 보관 후 drop
 - [브랜치 간 미반영 커밋 찾기(작성자·커미터·patch-id)](Git/브랜치 간 미반영 커밋 찾기(작성자·커미터·patch-id).md) — 작성일·커밋일과 --since, 작성자·커미터 차이, 여러 표기 매핑, 역병합 구조에서 --cherry-pick이 짝을 못 찾는 이유
@@ -57,10 +57,12 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [Spring @ResponseBody String 응답 한글 깨짐과 produces](Java·Spring/Spring @ResponseBody String 응답 한글 깨짐과 produces.md) — StringHttpMessageConverter 기본 ISO-8859-1, 요청만 맞추는 인코딩 필터, 매핑별 produces와 전역 컨버터 비교, 406 조건
 - [스레드 덤프 연속으로 응답 지연 지점 찾기](Java·Spring/스레드 덤프 연속으로 응답 지연 지점 찾기.md) — 느린 요청 고르기, 1초 간격 jstack 비교, connect·read 대기 구분, 닿지 않는 외부 서버 대기를 측정에서 빼기
 - [짧은 유효기간 읽기 캐시와 변경 시 비우기](Java·Spring/짧은 유효기간 읽기 캐시와 변경 시 비우기.md) — 호출 1회 Map·작업 1건 Map·서버 TTL 캐시 범위 고르기, 읽기 전용·짧은 만료·변경 지점 evict·끄는 스위치, 판정 메소드 안에서만 쓰기, Caffeine 예제와 테스트 항목
+- [싱글턴 빈 필드에 사용자별 상태를 두면 생기는 문제](Java·Spring/싱글턴 빈 필드에 사용자별 상태를 두면 생기는 문제.md) — 동시 요청이 필드를 덮어써 남의 데이터가 섞임, OAuth 흐름 객체를 필드에 두면 다른 서버 콜백 실패, 실패 시 이전 사람 객체 재사용, 지역 변수로 바꾸기
+- [DB 작업 큐를 스케줄러로 처리할 때 막히는 지점](Java·Spring/DB 작업 큐를 스케줄러로 처리할 때 막히는 지점.md) — 한 건 예외로 전체 실패와 수신자·채널별 격리, 재기동 ING 고착, @Scheduled 겹침 없음으로 생기는 지연, 느린 메일이 인앱 알림을 붙잡는 이유(트랜잭션 하나), 조건부 선점·하트비트·메일 묶음 발송
 
 ## DB·SQL
 - [AUTO_INCREMENT가 건너뛰며 증가하는 이유](DB·SQL/AUTO_INCREMENT가 건너뛰며 증가하는 이유.md) — auto_increment_increment와 Galera, LAST_INSERT_ID와 MAX의 차이, DDL에 따라온 덤프 시작값
-- [SELECT FOR UPDATE로 다중 서버 중복 갱신 막기](DB·SQL/SELECT FOR UPDATE로 다중 서버 중복 갱신 막기.md) — 행 잠금 후 재판정, JVM 잠금과 함께 쓰는 이유, 대표 행 하나를 잠가 범위 재계산을 하나씩 돌리기
+- [SELECT FOR UPDATE로 다중 서버 중복 갱신 막기](DB·SQL/SELECT FOR UPDATE로 다중 서버 중복 갱신 막기.md) — 행 잠금 후 재판정, JVM 잠금과 함께 쓰는 이유, 대표 행 하나를 잠가 범위 재계산을 하나씩 돌리기, REPEATABLE READ에서 잠근 뒤 읽는 이유, 긴 잠금의 대가와 조건부 UPDATE 대안, 멈췄을 때 열린 트랜잭션 조회
 - [시각 컬럼 타입 선택(epoch millis와 날짜 타입)](DB·SQL/시각 컬럼 타입 선택(epoch millis와 날짜 타입).md) — 타임존 위험, UTC 기록 컬럼, MySQL·Oracle 컬럼 타입 변경 차이
 - [PostgreSQL 개요와 MySQL·Oracle 문법 차이](DB·SQL/PostgreSQL 개요와 MySQL·Oracle 문법 차이.md) — 특징, 문법 비교표, 식별자 소문자화와 엄격한 형변환
 - [DB별 SQL에서 조용히 틀리는 조건식 패턴](DB·SQL/DB별 SQL에서 조용히 틀리는 조건식 패턴.md) — Oracle || 와 - 우선순위, MySQL IN 안의 OR, BETWEEN 인자 순서, 날짜에 숫자 빼기, 시각 붙은 날짜 = 비교, ORDER BY 없는 순서 의존
@@ -71,7 +73,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [JDBC batch와 다건 INSERT, 일부 실패 처리](DB·SQL/JDBC batch와 다건 INSERT, 일부 실패 처리.md) — 세 방식의 왕복·실패 동작, 드라이버별 batch 효과(rewriteBatchedStatements, 프로시저), 문장 단위 롤백과 커밋 한 번, 반으로 나눠 재시도, Oracle INSERT ALL 시퀀스 문제, 다건 프로시저 요청
 - [PL-SQL 패키지 명세·본문과 프로시저 시그니처](DB·SQL/PL-SQL 패키지 명세·본문과 프로시저 시그니처.md) — 스펙·바디(선언부·구현부), 블록의 선언부·실행부·예외처리부, 시그니처·형식/실제 파라미터 용어, user_arguments 조회
 - [MariaDB 뷰 DEFINER 계정과 콜레이션 오류(1449·1267)](DB·SQL/MariaDB 뷰 DEFINER 계정과 콜레이션 오류(1449·1267).md) — 계정 이름 대소문자, 잠긴 DEFINER 계정 추가, 뷰 상수가 만들 때 콜레이션으로 저장되는 문제와 재현, 직접 측정 때 1267이 빠른 결과로 보이는 함정, 예외 변환기 null로 NPE만 보이는 경우
-- [인덱스를 타는 조건과 온라인 인덱스 추가(INPLACE·LOCK=NONE)](DB·SQL/인덱스를 타는 조건과 온라인 인덱스 추가(INPLACE·LOCK=NONE).md) — 함수로 감싼 컬럼을 범위 조건으로, 문자 컬럼과 숫자 비교(암묵적 형변환)·파생 테이블 조인 형 맞추기, UNION과 UNION ALL, 경계값 대량 대조, 용도별 복합 인덱스와 잠금 범위, 온라인 DDL 옵션의 안전장치 역할, 메타데이터 잠금, Galera TOI
+- [인덱스를 타는 조건과 온라인 인덱스 추가(INPLACE·LOCK=NONE)](DB·SQL/인덱스를 타는 조건과 온라인 인덱스 추가(INPLACE·LOCK=NONE).md) — 함수로 감싼 컬럼을 범위 조건으로, 문자 컬럼과 숫자 비교(암묵적 형변환)·파생 테이블 조인 형 맞추기, UNION과 UNION ALL, 경계값 대량 대조, 용도별 복합 인덱스와 잠금 범위, 온라인 DDL 옵션의 안전장치 역할, 메타데이터 잠금, Galera TOI, 긴 문자 컬럼 접두 인덱스(3072바이트 한도), MySQL ADD KEY와 CREATE INDEX·Oracle 문법과 ORA-00955·01408, 함수 인덱스 사전 점검
 - [MariaDB 버퍼 풀 크기를 재시작 없이 줄이기](DB·SQL/MariaDB 버퍼 풀 크기를 재시작 없이 줄이기.md) — SET GLOBAL로 바로 축소, 실제 캐시 사용량으로 크기 정하기, 동적·정적 변수 구분, 설정 파일 유지
 - [부모가 사라진 고아 행 찾기와 백업 후 정리](DB·SQL/부모가 사라진 고아 행 찾기와 백업 후 정리.md) — 한 항목만 500·NPE로 나타나는 증상, LEFT JOIN으로 찾기, 딸린 테이블 행 수·역참조 확인, INSERT 백업과 한 트랜잭션 삭제, 코드 null 검사
 - [WITH RECURSIVE로 상위 계층 따라 올라가기](DB·SQL/WITH RECURSIVE로 상위 계층 따라 올라가기.md) — 재귀 CTE 동작 순서, 조건이 맞는 동안 부모로 올라가 멈춘 행 고르기, 루트 아래까지 경로 문자열, 순환·자기 참조·끊긴 부모 대비, 롤백으로 가정 시나리오 시험
@@ -98,7 +100,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시](Windows·자동화/PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시.md) — 창 없는 실행과 출력 리다이렉트, DoEvents, 프로세스 트리 종료, exe로 감싸도 소스가 보이는 이유
 - [HTML 파일을 작업 표시줄에 앱처럼 고정하기](Windows·자동화/HTML 파일을 작업 표시줄에 앱처럼 고정하기.md) — chrome --app 바로가기, PowerShell로 .lnk·아이콘 지정, 고정은 수동, 아이콘 캐시
 - [netsh Wi-Fi 전환 배치 파일을 다른 PC에 나눠 줄 때](Windows·자동화/netsh Wi-Fi 전환 배치 파일을 다른 PC에 나눠 줄 때.md) — 고정 IP 충돌, %~dp0 상대 경로, PC 전용 바로가기·어댑터 이름, 평문 비밀번호 XML, 재시도 없는 연결, UTF-8 배치 한글 깨짐, DHCP 복귀
-- [작업 표시줄 아이콘에 계단식 메뉴 붙이기](Windows·자동화/작업 표시줄 아이콘에 계단식 메뉴 붙이기.md) — Windows 11에서 없어진 도구 모음, 기본 csc.exe로 WinForms 빌드, 폴더 구조를 메뉴로(번호 순서·구분선), 고정과 .gitignore
+- [작업 표시줄 아이콘에 계단식 메뉴 붙이기](Windows·자동화/작업 표시줄 아이콘에 계단식 메뉴 붙이기.md) — Windows 11에서 없어진 도구 모음, 기본 csc.exe로 WinForms 빌드, 폴더 구조를 메뉴로(번호 순서·구분선), 고정과 .gitignore, 배율 다른 모니터에서 메뉴가 화면 밖에 뜸(Per-Monitor DPI), 입력 공유로 여러 번 실행·토글, 포커스 잃은 뒤 연 창 앞으로 가져오기
 - [시작프로그램을 꺼도 다시 켜지는 앱 정리](Windows·자동화/시작프로그램을 꺼도 다시 켜지는 앱 정리.md) — Run·StartupApproved·시작 폴더·스토어 앱 StartupTask, 앱 자체 "로그인 시 열기"가 등록을 되살리는 이유와 순서
 
 ## Claude Code
@@ -158,4 +160,6 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [보기 화면에서 contenteditable 막기(속성 제거와 false)](기타/보기 화면에서 contenteditable 막기(속성 제거와 false).md) — 저장본에 남은 편집 속성, 보기 화면에서 막아 과거 문서까지 해결, false가 재저장·재사용에 남기는 흔적, 저장 API 권한 확인
 - [성능 측정값이 튈 때 측정 밖 부하 가려내기](기타/성능 측정값이 튈 때 측정 밖 부하 가려내기.md) — 한 회차만 튀는 모양, 접근 로그와 사건 기록 시각 대조, 공용 서버·DB·메모리 간섭, 망 전환 감시 후 재측정, 원래 평균을 남기는 보고
 - [XML 응답의 빈 요소와 firstChild.nodeValue 오류](기타/XML 응답의 빈 요소와 firstChild.nodeValue 오류.md) — 빈 요소의 firstChild null, CDATA 채우기가 새 응답 경로에서 빠질 때 트리가 멈추는 증상, 원인 좁히기, 클라이언트·서버 수정
+- [Google Calendar freebusy로 다른 사람 바쁜 시간 표시하기](기타/Google Calendar freebusy로 다른 사람 바쁜 시간 표시하기.md) — 남의 구글 일정 보는 방법 비교, events.list보다 가벼운 이유, Workspace·개인 Gmail 차이, 병렬 호출·짧은 타임아웃·별도 요청 덧칠, 시간 칸 경계(끝 미포함·초 단위·한 자리 월일)
+- [수식 트리 후위 순회와 후위 표기식](기타/수식 트리 후위 순회와 후위 표기식.md) — 왼→오→자신 방문, 예제 트리 풀이, 스택으로 검증
 - [주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기)](기타/주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기).md) — 창 방식 오차와 주기 줄이기, 저장된 값의 뜻을 바꿀 때 1회 변환·기본값·롤백, 파생 행 부모 키 실수와 보정 SQL, 경우표로 발송 시각 시험
