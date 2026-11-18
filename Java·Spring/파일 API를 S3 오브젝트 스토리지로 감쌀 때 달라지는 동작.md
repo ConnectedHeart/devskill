@@ -1,6 +1,6 @@
 # 파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작
 
-> 분류: Java·Spring · 최근 갱신: 2026-10-27
+> 분류: Java·Spring · 최근 갱신: 2026-11-17
 
 ## 한 줄 요약
 `java.io.File`과 같은 모양의 래퍼로 로컬 디스크와 S3 호환 스토리지를 함께 지원하면, 폴더 개념이 없는 오브젝트 스토리지 특성 때문에 `exists`·`listFiles`·`renameTo`·`mkdir` 등이 디스크와 다르게 동작한다. 래퍼를 거치지 않고 `new File`을 쓰거나 경로만 다른 서버에 넘기는 코드는 S3 모드에서 조용히 깨진다.
@@ -75,6 +75,34 @@ try (S3ObjectInputStream in = s3.getObject(get).getObjectContent();
     in.transferTo(out);                                       // Java 8이면 버퍼 루프
 }
 ```
+
+### 3-1) 래퍼에 범위 GET이 없을 때: 앞부분을 읽어 버리고 구간만 보내기
+```java
+// 파일 모드는 RandomAccessFile.seek, 오브젝트 모드는 스트림을 처음부터 열어 start까지 버린다
+static void skipFully(InputStream in, long n) throws IOException {
+    while (n > 0) {
+        long s = in.skip(n);
+        if (s <= 0) {                        // 네트워크 스트림은 skip이 0을 줄 수 있다 → read로 대신
+            if (in.read() < 0) throw new EOFException("범위 시작이 파일 끝을 넘음");
+            s = 1;
+        }
+        n -= s;
+    }
+}
+
+static void copyRange(InputStream in, OutputStream out, long length) throws IOException {
+    byte[] buf = new byte[8192];
+    while (length > 0) {
+        int r = in.read(buf, 0, (int) Math.min(buf.length, length));
+        if (r < 0) break;                    // 파일 끝에서 멈춤
+        out.write(buf, 0, r);
+        length -= r;
+    }
+}
+```
+- 두 모드가 같은 `copyRange`를 쓰게 하면 단위 테스트 하나로 양쪽을 덮을 수 있다. 테스트에는 "skip이 0을 돌려주는 스트림"을 흉내 낸 경우를 넣는다.
+- 뒤쪽으로 건너뛸수록 앞부분을 다 받아야 해서 느리다. 미디어 탐색이 잦으면 래퍼에 범위 GET을 추가하는 것이 근본 해결이다.
+- 확인 항목: 전체 200, 가운데 구간 206, 끝 N바이트 206, 범위 초과 416, 없는 파일 404, 원본과 바이트 일치.
 
 ### 4) 코드 리뷰용 grep
 ```bash

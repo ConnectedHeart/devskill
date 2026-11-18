@@ -1,6 +1,6 @@
 # Spring 트랜잭션 전파와 자동 커밋
 
-> 분류: Java·Spring · 최근 갱신: 2026-10-27
+> 분류: Java·Spring · 최근 갱신: 2026-11-17
 
 ## 한 줄 요약
 트랜잭션 매니저는 쿼리를 실행하는 장치가 아니라 자동 커밋을 끄고 여러 쿼리를 한 커넥션으로 묶는 장치이며, 외부 시스템을 바꾸는 작업은 호출한 쪽 트랜잭션과 분리(REQUIRES_NEW)해야 롤백으로 어긋나지 않는다.
@@ -17,6 +17,13 @@
   - 이름 패턴 포인트컷(`*Impl` 등)으로 일괄 적용하는 프로젝트에서는 패턴에 맞지 않는 클래스에 트랜잭션이 아예 걸리지 않는다.
   - 프록시를 거치지 않는 같은 클래스 내부 호출(private 메서드 포함)에는 적용되지 않는다. 메서드 하나만 다른 규칙으로 돌리려면 별도 빈으로 빼야 한다.
   - 설정이 안 맞아도 오류 없이 트랜잭션만 빠진 채 돈다. `TransactionSynchronizationManager.isActualTransactionActive()`를 로그로 찍어 확인한다.
+  - `<tx:annotation-driven>`이 없으면 `@Transactional`은 붙어 있어도 무시된다.
+  - **포인트컷에 특정 클래스 이름을 직접 쓰면 위험하다**: `execution(* com.example.app.OrderServiceImpl.save(..))`처럼 이름을 박은 표현식을 `||`로 이어 둔 상태에서 그 클래스가 이름 변경·삭제로 사라지면, 기동 오류 없이 그 포인트컷 전체가 아무것에도 매칭되지 않아 **앱 전체의 트랜잭션이 꺼질 수 있다**(실제 시험에서 다른 서비스도 프록시가 안 됨을 확인). 이름을 박은 항목은 별도 advisor로 나누거나, 클래스 이동 시 함께 고치도록 주석을 남긴다.
+- **트랜잭션 밖에서 "INSERT 후 방금 만든 ID 읽기"는 틀릴 수 있다**: MySQL `LAST_INSERT_ID()`, Oracle `시퀀스.CURRVAL`은 같은 커넥션(세션)에서 실행한 INSERT의 값만 돌려준다. 트랜잭션이 없으면 DAO 호출마다 풀에서 커넥션을 따로 빌리므로 두 쿼리가 다른 커넥션에서 돌 수 있고, 그러면 MySQL은 다른 요청의 ID나 0을, Oracle은 ORA-08002(CURRVAL 미정의)를 낸다. 한가할 때는 풀이 방금 반납된 커넥션을 다시 줘서 잘 안 드러나고 동시 요청이 많을 때만 생긴다. 해결은 트랜잭션으로 묶거나, INSERT 문 안에서 키를 돌려받는 방식(selectKey, `getGeneratedKeys`)을 쓰는 것이다.
+- **트랜잭션이 없던 영역에 포인트컷을 넓게 추가하면 동작이 바뀐다**
+  - 예전에는 안쪽 서비스가 자기 트랜잭션에서 따로 끝나던 것이, 바깥에 트랜잭션이 생기면 거기에 합류(REQUIRED)한다. 안쪽에서 예외가 나면 바깥 트랜잭션 전체에 rollback-only 표시가 붙고, 바깥 코드가 catch로 삼키고 정상 반환해도 마지막 커밋에서 `UnexpectedRollbackException`이 난다. "파일이 없으면 빈 본문을 보여 준다" 같은 조회 화면이 오류 화면으로 바뀐다.
+  - 메일(IMAP·SMTP)·REST 호출처럼 DB를 안 쓰는 긴 작업 동안에도 커넥션을 붙잡아 풀이 바닥날 수 있다. 이런 메서드는 `SUPPORTS`로 빼 둔다.
+  - 그래서 넓게 넣기 전에 "예외를 잡고 넘어가는 곳"과 "외부 호출이 긴 곳"을 먼저 찾고, 필요한 메서드만 좁게 넣는 편이 안전하다.
 - **전파 방식**
   - REQUIRED(기본): 호출한 쪽 트랜잭션이 있으면 합류, 없으면 새로 시작.
   - REQUIRES_NEW: 항상 새로 시작하고 끝나면 바로 커밋. 바깥 트랜잭션과 별개의 커넥션을 쓴다.
@@ -86,6 +93,28 @@ public Row refresh(String key) {
         return refreshAndSave(row);       // 런타임 예외가 나면 롤백, 정상 종료면 커밋
     });
 }
+```
+
+### 5) 합류한 트랜잭션에서 예외를 삼키면 커밋이 실패하는 예
+```java
+// 바깥: 이제 트랜잭션 대상이 된 메서드(REQUIRED)
+public String loadBody(String docId) {
+    try {
+        return contentService.readFile(docId);   // 안쪽 서비스도 REQUIRED → 같은 트랜잭션에 합류
+    } catch (Exception e) {
+        return "";                               // 예외를 삼켜도 rollback-only 표시는 남는다
+    }
+}   // 메서드가 끝나며 커밋 시도 → UnexpectedRollbackException
+
+// 대안: 안쪽을 noRollbackFor로 두거나, 실패가 예상되는 조회는 트랜잭션 밖(SUPPORTS)에서 부른다
+```
+
+### 6) 이름을 박은 포인트컷은 따로 두기
+```xml
+<!-- 패턴 포인트컷과 섞지 않는다: 클래스가 사라져도 이 advisor만 무력해진다 -->
+<aop:advisor advice-ref="txAdvice" pointcut="execution(* com.example..*Impl.*(..))"/>
+<aop:advisor advice-ref="txAdvice"
+             pointcut="execution(* com.example.app.OrderServiceImpl.saveOrder(..))"/>
 ```
 
 ## 주의할 점

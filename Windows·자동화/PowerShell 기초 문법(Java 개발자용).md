@@ -1,6 +1,6 @@
 # PowerShell 기초 문법(Java 개발자용)
 
-> 분류: Windows·자동화 · 최근 갱신: 2026-10-27
+> 분류: Windows·자동화 · 최근 갱신: 2026-11-17
 
 ## 한 줄 요약
 PowerShell은 Windows에 기본 포함된 .NET 기반 셸 겸 스크립트 언어로, 변수는 `$이름`, 비교는 `-eq` 같은 단어 연산자, 파이프는 글자가 아니라 객체를 넘긴다.
@@ -80,6 +80,26 @@ Get-ChildItem -Filter '*.war' | Sort-Object LastWriteTime -Descending | Select-O
 # 걸러서 속성만 뽑기 (stream().filter().map() 과 같은 구조)
 Get-ChildItem -File | Where-Object { $_.Length -gt 1MB } | ForEach-Object { $_.Name }
 ```
+
+### 3-1) 파이프라인 예: 리스닝 포트와 그 프로세스 보기
+```powershell
+# 원본 → 거르기 → 행마다 변환 → 정렬 → 출력 (Java: stream().filter().map().sorted(), SQL: FROM/WHERE/SELECT/ORDER BY)
+Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
+  Where-Object { $_.LocalPort -ge 18000 -and $_.LocalPort -le 18500 } |   # 볼 포트 범위만 바꾼다
+  ForEach-Object {
+    $p = Get-CimInstance Win32_Process -Filter "ProcessId=$($_.OwningProcess)"
+    [pscustomobject]@{
+      Port  = $_.LocalPort
+      PID   = $_.OwningProcess
+      Start = $p.CreationDate
+      Cmd   = ($p.CommandLine -replace '.*-Dcatalina.base=("?)([^" ]+).*', '$2')   # Tomcat이면 어느 폴더인지
+    }
+  } |
+  Sort-Object Port |
+  Format-Table -AutoSize | Out-String -Width 300
+```
+- 한 줄로 몰아 쓰면 읽기 어렵다. 파이프 `|`를 줄 끝에 두면 다음 줄로 이어진다(백틱 불필요).
+- Tomcat은 HTTP 포트 외에 종료 포트(기본 8005 계열)도 리스닝하므로 포트 수가 서버 수보다 많아 보인다.
 
 ### 4) 더블클릭 실행용 bat
 ```bat

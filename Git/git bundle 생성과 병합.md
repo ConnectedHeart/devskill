@@ -1,6 +1,6 @@
 # git bundle 생성과 병합
 
-> 분류: Git · 최근 갱신: 2026-11-16
+> 분류: Git · 최근 갱신: 2026-11-18
 
 ## 한 줄 요약
 `git bundle`은 저장소(또는 일부 브랜치)를 파일 하나로 묶어 네트워크 없이 옮기는 방법이고, 받는 쪽에서는 그 파일을 원격 저장소처럼 clone/fetch 한다.
@@ -32,6 +32,17 @@
 - 번들 파일로 clone하면 `origin`이 그 파일 경로를 가리킨다. 파일을 옮기거나 지우면 fetch가 실패하므로 실제 원격이 생기면 `remote set-url`로 바꾼다.
 - 지금 체크아웃된 브랜치 이름으로는 `fetch <번들> 브랜치:브랜치`가 거부된다. 다른 이름으로 받거나 `git pull <번들> <브랜치>`를 쓴다.
 - 받는 쪽 브랜치 이름과 겹치지 않게 `fetch <번들> 브랜치:refs/remotes/<이름>/브랜치`처럼 원격 추적 이름으로 받아 병합하면, 상대가 보낸 것과 내 브랜치가 구분된다.
+
+### 받은 번들을 원격 서버 브랜치에 올리기
+- "번들로 원격 브랜치를 덮어쓴다"는 요청이라도 먼저 원격을 fetch해 번들 끝 이후 원격에 새 커밋이 있는지(`git log <번들끝>..<원격>/<브랜치>`) 본다. 없으면 일반 push로 이어 붙이고, 있으면 그 위로 rebase한 뒤 push한다. `--force`는 그 사이 다른 사람이 올린 커밋을 지운다.
+- 정말 덮어써야 하면 먼저 원격 끝을 백업 브랜치로 push하고, `--force-with-lease=<브랜치>:<기대 SHA>`를 쓴다. 원격이 기대한 SHA가 아니면 거부되므로 `--force`보다 안전하다. 서버에 `receive.denyNonFastForwards`가 켜져 있으면 강제 push 자체가 막힌다.
+- 번들에 빠진 최근 커밋은 번들 클론에 `git am`으로 더하고, 그 몇 건만 담은 증분 번들을 따로 만들면 다른 PC에서도 반영할 수 있다.
+
+### 갈라진 로컬 브랜치를 원격에 맞추기
+- 같은 내용을 서로 다른 경로(패치 적용, 체리픽)로 받아 해시만 다르면, 로컬과 원격이 "앞서고 뒤처진" 상태가 된다. 이때 pull은 같은 내용을 병합 커밋으로 섞고, push는 거절되거나 강제로 하면 원격 커밋이 지워진다.
+- `git cherry <원격> <로컬>`로 로컬에만 있는 커밋이 모두 원격에 같은 내용(`-` 표시)으로 있는지 확인한 뒤 `git reset --keep <원격>/<브랜치>`로 맞춘다. `--keep`은 커밋하지 않은 수정을 남기고, 그 파일이 두 커밋 사이에서 바뀌었으면 아무것도 바꾸지 않고 멈춘다. 이전 끝은 reflog로 되돌릴 수 있다.
+- 원격 주소를 바꾸면(`remote set-url`) fetch prune이 이전 원격에만 있던 원격 추적 브랜치를 로컬 목록에서 지운다(서버 쪽 브랜치는 그대로).
+- 원격에 대소문자만 다른 브랜치가 있으면 Windows(대소문자 무시 파일 시스템)에서 fetch 때마다 오류가 나고 그 브랜치만 못 받는다. 다른 브랜치는 정상으로 받아진다.
 
 ### --no-ff
 - fast-forward는 내 브랜치에 새 커밋이 없을 때 병합 커밋 없이 포인터만 옮기는 기본 동작이다. 이력이 한 줄이 되어 어디까지가 들어온 커밋인지 남지 않는다.
@@ -98,7 +109,28 @@ git branch -D snapshot
 # 받는 쪽: git clone -b snapshot snapshot.bundle site-src
 ```
 
-### 6) 큰 번들 나누기와 합치기
+### 6) 번들 내용을 원격 서버 브랜치에 올리기
+```bash
+git fetch ../repo.bundle main:from-bundle                 # 번들을 임시 브랜치로
+git remote add company <원격 URL>
+git fetch company main
+git log --oneline from-bundle..company/main               # 번들 이후 원격에 생긴 커밋
+git push company from-bundle:main                         # 위가 비어 있으면 일반 push
+# 원격에 새 커밋이 있으면: git rebase company/main from-bundle 후 push
+# 꼭 덮어써야 할 때만 (백업 먼저)
+git push company <옛SHA>:refs/heads/main_backup
+git push --force-with-lease=main:<옛SHA> company from-bundle:main
+```
+
+### 7) 해시만 다른 로컬 브랜치를 원격에 맞추기
+```bash
+git fetch origin
+git cherry origin/main main          # '+'가 하나도 없으면 로컬 전용 커밋 내용이 모두 원격에 있음
+git reset --keep origin/main         # 미커밋 수정 유지, 충돌하면 멈춤
+git reflog -3                        # 되돌릴 이전 끝 확인
+```
+
+### 8) 큰 번들 나누기와 합치기
 ```bash
 split -b 1000m -d ../repo.bundle ../repo.bundle.part   # repo.bundle.part00, part01 ...
 cat repo.bundle.part* > repo.bundle                     # 받는 쪽에서 합치기

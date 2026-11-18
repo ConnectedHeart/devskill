@@ -6,7 +6,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - 같은 주제는 한 파일에 계속 보탭니다.
 
 ## Git
-- [git bundle 생성과 병합](Git/git bundle 생성과 병합.md) — 저장소를 파일 하나로 옮기는 방법, FETCH_HEAD로 병합하는 이유, --no-ff, 갈라진 브랜치만 merge-base 이후로 담기, commit-tree 이력 없는 스냅샷, 체크아웃 브랜치 fetch 거부, 원격 추적 이름으로 받기
+- [git bundle 생성과 병합](Git/git bundle 생성과 병합.md) — 저장소를 파일 하나로 옮기는 방법, FETCH_HEAD로 병합하는 이유, --no-ff, 갈라진 브랜치만 merge-base 이후로 담기, commit-tree 이력 없는 스냅샷, 체크아웃 브랜치 fetch 거부, 원격 추적 이름으로 받기, 번들을 원격에 올릴 때 force 대신 확인 후 일반 push·force-with-lease, 해시만 다른 로컬 브랜치를 cherry 확인 후 reset --keep, 대소문자만 다른 원격 브랜치
 - [cherry-pick 충돌 해결과 검증](Git/cherry-pick 충돌 해결과 검증.md) — 선행 커밋 찾기와 순서, 충돌이 많은 이유 3가지, 선행 커밋 필요와 옆줄 겹침 구분, worktree·merge-tree 시험, 연속 작업 묶음 중간 시점 결함, push 전 rebase --onto로 하나 빼기, 공백만 다른 충돌, 검증 절차
 - [git stash 적용 충돌 알아보기와 오래된 stash 정리](Git/git stash 적용 충돌 알아보기와 오래된 stash 정리.md) — Stashed changes 표시와 MERGE_HEAD 부재, reflog로 stash 경위 추적, HEAD 쪽 해결, 보관 후 drop
 - [브랜치 간 미반영 커밋 찾기(작성자·커미터·patch-id)](Git/브랜치 간 미반영 커밋 찾기(작성자·커미터·patch-id).md) — 작성일·커밋일과 --since, 작성자·커미터 차이, 여러 표기 매핑, 역병합 구조에서 --cherry-pick이 짝을 못 찾는 이유
@@ -33,11 +33,13 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [화면 제한과 서버 측 접근 확인(IDOR)](인증·보안/화면 제한과 서버 측 접근 확인(IDOR).md) — 화면 숨김은 보안이 아님, ID로 데이터를 꺼내는 API만 확인 필요, 저장 전 대상의 소유 판정, 클라이언트가 보낸 값 신뢰 금지, 권한은 ID로·파일은 경로로 고르는 다운로드와 ID+순번 방식, 흩어진 판정의 구멍(1단계만 판정·통과 플래그·못 찾으면 통과·경로별 조합·관리자 API)과 판정 통일·전수조사 요령
 - [URL의 ID 파라미터 숨기기와 서명 링크 토큰](인증·보안/URL의 ID 파라미터 숨기기와 서명 링크 토큰.md) — 사용자 본인에게는 숨길 수 없는 이유, 목표별 방법(POST·replaceState·토큰), DB 저장 토큰과 HMAC 서명 토큰 비교, 새로고침·메일 링크·후속 요청 한계
 - [인증 실패 응답 문구와 거부 사유 로그](인증·보안/인증 실패 응답 문구와 거부 사유 로그.md) — 판정 기준·설정 상태를 흘리는 문구, code 유지·message만 일반화, request 속성으로 사유 전달, 값 없는 사유 로그와 로그 위조 방지
+- [Keycloak client credentials(Service accounts)로 사용자 없이 토큰 받기](인증·보안/Keycloak client credentials(Service accounts)로 사용자 없이 토큰 받기.md) — grant 방식 비교, DB 해시·만료 refresh token을 배치에 못 쓰는 이유, Service accounts 옵션과 service-account 계정 권한 인정, secret 무게 증가, 응답 ID 접미사 안전하게 떼기
+- [숨은 iframe으로 다른 시스템 SSO 입구를 먼저 호출하기](인증·보안/숨은 iframe으로 다른 시스템 SSO 입구를 먼저 호출하기.md) — 서버가 부르면 안 되는 이유, HttpOnly 토큰 넘기기, 클릭 때 선호출, onload 조용함·상한으로 끝 판정, 늦은 iframe 제거, 프레임 탈출과 sandbox, returnUrl 방식과 무한 루프 방지, 토큰 인코딩
 - [DB 계정 비밀번호 해시가 노출되는 조회와 대신 쓸 조회](인증·보안/DB 계정 비밀번호 해시가 노출되는 조회와 대신 쓸 조회.md) — SHOW GRANTS·SHOW CREATE USER·mysql.user의 해시, information_schema 권한 조회, 새었을 때 찾기·가리기·변경·노출 범위 줄이기, 지침만으로는 못 막는 점
 
 ## Java·Spring
 - [synchronized와 잠금 객체 나누기(lock striping)](Java·Spring/synchronized와 잠금 객체 나누기(lock striping).md) — 잠금 객체의 의미, 키 해시로 N개 잠금 고르기, JVM 한계
-- [Spring 트랜잭션 전파와 자동 커밋](Java·Spring/Spring 트랜잭션 전파와 자동 커밋.md) — 트랜잭션 매니저와 커넥션 풀의 역할, REQUIRES_NEW가 필요한 경우, 정리 작업을 트랜잭션 밖으로
+- [Spring 트랜잭션 전파와 자동 커밋](Java·Spring/Spring 트랜잭션 전파와 자동 커밋.md) — 트랜잭션 매니저와 커넥션 풀의 역할, REQUIRES_NEW가 필요한 경우, 정리 작업을 트랜잭션 밖으로, 클래스 이름을 박은 포인트컷이 사라지면 전체 트랜잭션이 꺼지는 함정, 트랜잭션 밖 LAST_INSERT_ID·CURRVAL이 다른 커넥션에서 도는 문제, 포인트컷 확대 시 UnexpectedRollbackException·외부 호출 중 커넥션 점유
 - [외부 API 판정 결과의 로컬 캐시 설계](Java·Spring/외부 API 판정 결과의 로컬 캐시 설계.md) — 성공·실패 캐시, 실패 캐시 만료마다 생기는 주기적 멈춤과 refreshAfterWrite 백그라운드 갱신, request 속성과의 역할 구분, 다중 서버 한계
 - [Future로 외부 호출 전체 시간 제한하기](Java·Spring/Future로 외부 호출 전체 시간 제한하기.md) — connect/read 타임아웃의 빈틈, ExecutionException 벗기기, cancel의 한계
 - [RestTemplate JSON 호출의 숫자 타입과 타임아웃](Java·Spring/RestTemplate JSON 호출의 숫자 타입과 타임아웃.md) — Gson·json-simple·Jackson의 타입 차이, 전용 RestTemplate
@@ -48,7 +50,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [목록 행마다 서비스를 부르는 N+1과 쪽 단위 일괄 조회](Java·Spring/목록 행마다 서비스를 부르는 N+1과 쪽 단위 일괄 조회.md) — 행 수에 비례하는 시간으로 알아보기, 트랜잭션 AOP·커넥션 검증 왕복, ID 모아 IN 조회 후 Map, 판정 조건·기본값 유지, 칸마다 같은 설정값 읽기, 트리 노드별 확인 요청을 일괄 요청으로, 일괄 조회가 기대는 인덱스와 패치 누락
 - [JVM 힙 상한(-Xms·-Xmx)과 개발 PC 메모리 부족](Java·Spring/JVM 힙 상한(-Xms·-Xmx)과 개발 PC 메모리 부족.md) — 기본 힙 RAM 1/4, GC 폭주 증상, IDE와 WAS 옵션 구분·적용 확인, 합계 계산, 빠른 시작과 커널 가동 시간, Electron 다중 프로세스, Maven surefire forkCount=1C로 테스트 JVM 메모리 부족
 - [요청 중 만든 임시 파일 정리](Java·Spring/요청 중 만든 임시 파일 정리.md) — finally에서 삭제, 확장자가 아닌 플래그로 판단, 스케줄러 정리 대상 확인, 동시 요청 파일명
-- [파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작](Java·Spring/파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작.md) — 폴더 없는 키 구조, exists·listFiles prefix·renameTo 비원자성, new File·경로 전달 연동이 깨지는 이유, 범위 GET 스트리밍, 리뷰용 grep
+- [파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작](Java·Spring/파일 API를 S3 오브젝트 스토리지로 감쌀 때 달라지는 동작.md) — 폴더 없는 키 구조, exists·listFiles prefix·renameTo 비원자성, new File·경로 전달 연동이 깨지는 이유, 범위 GET 스트리밍, 범위 GET 없을 때 skip 후 구간 복사, 리뷰용 grep
 - [서블릿 필터 URL 패턴과 한글 파일명 깨짐](Java·Spring/서블릿 필터 URL 패턴과 한글 파일명 깨짐.md) — *.do에만 걸린 인코딩 필터, 확장자 없는 주소의 multipart 깨짐, {id:.+} 경로 변수가 확장자를 먹는 문제
 - [Spring에 선택적 두 번째 데이터소스 추가하기](Java·Spring/Spring에 선택적 두 번째 데이터소스 추가하기.md) — JNDI와 properties 직접 연결, 빈 기본값·lazy-init·autowire-candidate로 기동 유지, URL 없으면 기존 경로, DB 종류 메타데이터 판별, 트랜잭션 밖 직접 JDBC
 - [HttpClient 커넥션 풀 크기와 자기 서버 호출 교착](Java·Spring/HttpClient 커넥션 풀 크기와 자기 서버 호출 교착.md) — 생성 방식별 기본 풀(5·2·무제한), 싱글톤화로 생기는 병목, 동시 호출 수로 크기 정하기, maxThreads 40% 이내 이유, 풀 대기 상한, 공유 쿠키 저장소·시스템 프로퍼티 누락, 같은 풀 다른 타임아웃, 팩토리 값이 설정 키를 이기는 실제 타임아웃, 긴 기본 읽기 타임아웃을 물려받는 외부 호출, 남은 new RestTemplate 찾기, 쿠키 미저장 뒤 상대 서버 세션 증가
@@ -56,7 +58,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [반복 일정 전개 조회에서 기간 밖 반복 건너뛰기](Java·Spring/반복 일정 전개 조회에서 기간 밖 반복 건너뛰기.md) — 기간과 무관하게 펼치는 구조의 N+1, 종료 방식별 건너뛰기 조건과 근거, 메소드 지역 메모, 응답 바이트 비교·번갈아 측정·Com_select로 쿼리 수 세기
 - [Spring @ResponseBody String 응답 한글 깨짐과 produces](Java·Spring/Spring @ResponseBody String 응답 한글 깨짐과 produces.md) — StringHttpMessageConverter 기본 ISO-8859-1, 요청만 맞추는 인코딩 필터, 매핑별 produces와 전역 컨버터 비교, 406 조건
 - [스레드 덤프 연속으로 응답 지연 지점 찾기](Java·Spring/스레드 덤프 연속으로 응답 지연 지점 찾기.md) — 느린 요청 고르기, 1초 간격 jstack 비교, connect·read 대기 구분, 닿지 않는 외부 서버 대기를 측정에서 빼기
-- [짧은 유효기간 읽기 캐시와 변경 시 비우기](Java·Spring/짧은 유효기간 읽기 캐시와 변경 시 비우기.md) — 호출 1회 Map·작업 1건 Map·서버 TTL 캐시 범위 고르기, 읽기 전용·짧은 만료·변경 지점 evict·끄는 스위치, 판정 메소드 안에서만 쓰기, Caffeine 예제와 테스트 항목
+- [짧은 유효기간 읽기 캐시와 변경 시 비우기](Java·Spring/짧은 유효기간 읽기 캐시와 변경 시 비우기.md) — 호출 1회 Map·작업 1건 Map·서버 TTL 캐시 범위 고르기, 읽기 전용·짧은 만료·변경 지점 evict·끄는 스위치, 판정 메소드 안에서만 쓰기, Caffeine 예제와 테스트 항목, 작업 1건 범위 권한 조회 재사용(null 위임 오버로드·인자 전부 key·containsKey·checked 예외 Loader)
 - [싱글턴 빈 필드에 사용자별 상태를 두면 생기는 문제](Java·Spring/싱글턴 빈 필드에 사용자별 상태를 두면 생기는 문제.md) — 동시 요청이 필드를 덮어써 남의 데이터가 섞임, OAuth 흐름 객체를 필드에 두면 다른 서버 콜백 실패, 실패 시 이전 사람 객체 재사용, 지역 변수로 바꾸기
 - [DB 작업 큐를 스케줄러로 처리할 때 막히는 지점](Java·Spring/DB 작업 큐를 스케줄러로 처리할 때 막히는 지점.md) — 한 건 예외로 전체 실패와 수신자·채널별 격리, 재기동 ING 고착, @Scheduled 겹침 없음으로 생기는 지연, 느린 메일이 인앱 알림을 붙잡는 이유(트랜잭션 하나), 조건부 선점·하트비트·메일 묶음 발송
 
@@ -78,6 +80,8 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [부모가 사라진 고아 행 찾기와 백업 후 정리](DB·SQL/부모가 사라진 고아 행 찾기와 백업 후 정리.md) — 한 항목만 500·NPE로 나타나는 증상, LEFT JOIN으로 찾기, 딸린 테이블 행 수·역참조 확인, INSERT 백업과 한 트랜잭션 삭제, 코드 null 검사
 - [WITH RECURSIVE로 상위 계층 따라 올라가기](DB·SQL/WITH RECURSIVE로 상위 계층 따라 올라가기.md) — 재귀 CTE 동작 순서, 조건이 맞는 동안 부모로 올라가 멈춘 행 고르기, 루트 아래까지 경로 문자열, 순환·자기 참조·끊긴 부모 대비, 롤백으로 가정 시나리오 시험
 - [SQL에 DB 이름(스키마 접두어)을 박아 둘 때 생기는 문제](DB·SQL/SQL에 DB 이름(스키마 접두어)을 박아 둘 때 생기는 문제.md) — 복제 스키마로 띄우면 일부만 원래 DB를 읽는 증상, FK가 다른 스키마를 가리킴, Linux 대소문자 구분, 찾기·고치기·FK 확인 쿼리
+- [max+1 ID를 시퀀스·AUTO_INCREMENT로 바꾸기](DB·SQL/max+1 ID를 시퀀스·AUTO_INCREMENT로 바꾸기.md) — max+1이 겹치는 이유와 synchronized 한계, 방법 비교, selectKey pre(Oracle)·post(MySQL), 부모 먼저 넣고 받은 번호로 자식, FK 때문에 FOREIGN_KEY_CHECKS·Oracle 시작값 PL/SQL, 저장 중단→SQL→전체 배포 순서와 롤링 배포 위험
+- [DELETE 후 INSERT 동시 실행 시 InnoDB 교착(FK 검사 잠금)](DB·SQL/DELETE 후 INSERT 동시 실행 시 InnoDB 교착(FK 검사 잠금).md) — 재저장 교착 증상, 인덱스 추가로 오히려 늘어난 이유, FK 검사 공유 간격 잠금과 끝 자리 INSERT, 해결 방법 비교, 트랜잭션 바깥 전체 재시도
 
 ## 네트워크
 - [LDAP 연결 끊김 원인 구분](네트워크/LDAP 연결 끊김 원인 구분.md) — 오류 메시지별 의미, TTL 비교로 끊은 주체 찾기
@@ -96,7 +100,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [작업 스케줄러로 스크립트 자동 실행](Windows·자동화/작업 스케줄러로 스크립트 자동 실행.md) — UAC 없이 관리자 스크립트 실행, idle 감지, 창 없는 실행, 작업 잠시 끄기·다시 켜기
 - [예약 재시작과 전원 설정](Windows·자동화/예약 재시작과 전원 설정.md) — shutdown /g와 ARSO, 절전 방지 powercfg
 - [PowerShell과 Git Bash 사용 시 주의점](Windows·자동화/PowerShell과 Git Bash 사용 시 주의점.md) — curl 별칭, CRLF 변환, 스크립트 인코딩, 1건 배열, 실행 정책 Process 범위, 사용자 환경 변수 상속, 함수·별칭 충돌, properties \u 이스케이프, 폴더 이동 막힘
-- [PowerShell 기초 문법(Java 개발자용)](Windows·자동화/PowerShell 기초 문법(Java 개발자용).md) — 변수 스코프, 단어 연산자, @ 기호, 객체 파이프, cmdlet 호출, 경로 명령
+- [PowerShell 기초 문법(Java 개발자용)](Windows·자동화/PowerShell 기초 문법(Java 개발자용).md) — 변수 스코프, 단어 연산자, @ 기호, 객체 파이프, cmdlet 호출, 경로 명령, 리스닝 포트와 프로세스 보기 파이프라인 예
 - [PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시](Windows·자동화/PowerShell GUI 도구에서 외부 프로세스 출력 실시간 표시.md) — 창 없는 실행과 출력 리다이렉트, DoEvents, 프로세스 트리 종료, exe로 감싸도 소스가 보이는 이유
 - [HTML 파일을 작업 표시줄에 앱처럼 고정하기](Windows·자동화/HTML 파일을 작업 표시줄에 앱처럼 고정하기.md) — chrome --app 바로가기, PowerShell로 .lnk·아이콘 지정, 고정은 수동, 아이콘 캐시
 - [netsh Wi-Fi 전환 배치 파일을 다른 PC에 나눠 줄 때](Windows·자동화/netsh Wi-Fi 전환 배치 파일을 다른 PC에 나눠 줄 때.md) — 고정 IP 충돌, %~dp0 상대 경로, PC 전용 바로가기·어댑터 이름, 평문 비밀번호 XML, 재시도 없는 연결, UTF-8 배치 한글 깨짐, DHCP 복귀
@@ -142,7 +146,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [외부 API가 빈 응답을 줄 때 원인 가르기](기타/외부 API가 빈 응답을 줄 때 원인 가르기.md) — 공통 실패 안내의 원인 분리, 테스트 요청의 실제 재현 여부, 응답 시간 단서, 입력 조합 표, 화면 값과 저장 값 차이
 - [끼워 넣은 span이 주변 글꼴을 따르지 않는 이유](기타/끼워 넣은 span이 주변 글꼴을 따르지 않는 이유.md) — 태그 전역 CSS가 상속을 막는 원리, 표시 클래스에만 inherit
 - [화면 안내 메시지 설계(토스트와 알림창, 중복 알림)](기타/화면 안내 메시지 설계(토스트와 알림창, 중복 알림).md) — 성공은 토스트·실패는 알림창, 하위 함수는 결과만 반환, 결과 확인 후 상태 변경, 일괄 처리 안내
-- [window.open 창 이름 재사용과 opener](기타/window.open 창 이름 재사용과 opener.md) — 같은 이름 창 재로드로 입력 내용 소실, 고정 이름 보조 창의 opener, 새 탭·위젯 창의 opener 없음과 postMessage 열기 요청, 비동기 뒤 팝업 차단과 빈 창 먼저 열기
+- [window.open 창 이름 재사용과 opener](기타/window.open 창 이름 재사용과 opener.md) — 같은 이름 창 재로드로 입력 내용 소실, 고정 이름 보조 창의 opener, 새 탭·위젯 창의 opener 없음과 postMessage 열기 요청, 비동기 뒤 팝업 차단과 빈 창 먼저 열기, noopener가 null을 돌려줘 차단 판정 불가, 새 창 안 rel=noreferrer 링크로 Referer 빼기, 허용 출처 판정과 origin "null", window.open 재정의가 about:blank를 404로 만드는 문제
 - [목록과 건수를 따로 요청할 때 응답 순서 버그](기타/목록과 건수를 따로 요청할 때 응답 순서 버그.md) — 순서가 뒤집히는 이유, 페이지 번호 소실·이전 건수 사용·재사용 파라미터에 남은 플래그, readyState 확인, route 지연으로 재현
 - [jQuery Mobile 화면에서 무거운 라이브러리 지연 로드](기타/jQuery Mobile 화면에서 무거운 라이브러리 지연 로드.md) — AJAX 이동이 head를 버리는 점, 활성 페이지 범위 선택자, 안 쓰는 의존 파일 찾기, 1회 로드·진행 중 공유·script 태그 방식(CSP)·타임아웃, 나간 뒤 그리지 않기
 - [개발자 도구로 iframe 화면 이동 시간 재기](기타/개발자 도구로 iframe 화면 이동 시간 재기.md) — Finish가 안 나오는 이유, End Time 정렬·Performance 스크린샷과 설정·읽는 법, 프레임 넘는 콘솔 스니펫, 일반 사용자용 측정 북마클릿(요청 추적·DOM 정지·주기 조회 제외), 측정 도구 타당성 교차 검증, Playwright, access log %D
@@ -162,4 +166,4 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [XML 응답의 빈 요소와 firstChild.nodeValue 오류](기타/XML 응답의 빈 요소와 firstChild.nodeValue 오류.md) — 빈 요소의 firstChild null, CDATA 채우기가 새 응답 경로에서 빠질 때 트리가 멈추는 증상, 원인 좁히기, 클라이언트·서버 수정
 - [Google Calendar freebusy로 다른 사람 바쁜 시간 표시하기](기타/Google Calendar freebusy로 다른 사람 바쁜 시간 표시하기.md) — 남의 구글 일정 보는 방법 비교, events.list보다 가벼운 이유, Workspace·개인 Gmail 차이, 병렬 호출·짧은 타임아웃·별도 요청 덧칠, 시간 칸 경계(끝 미포함·초 단위·한 자리 월일)
 - [수식 트리 후위 순회와 후위 표기식](기타/수식 트리 후위 순회와 후위 표기식.md) — 왼→오→자신 방문, 예제 트리 풀이, 스택으로 검증
-- [주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기)](기타/주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기).md) — 창 방식 오차와 주기 줄이기, 저장된 값의 뜻을 바꿀 때 1회 변환·기본값·롤백, 파생 행 부모 키 실수와 보정 SQL, 경우표로 발송 시각 시험
+- [주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기)](기타/주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기).md) — 창 방식 오차와 주기 줄이기, 저장된 값의 뜻을 바꿀 때 1회 변환·기본값·롤백, 파생 행 부모 키 실수와 보정 SQL, 경우표로 발송 시각 시험, 설정 행 없는 사용자에게 LEFT JOIN·COALESCE 기본값, 늦게 시작한 실행의 건너뜀
