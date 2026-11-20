@@ -61,6 +61,8 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [짧은 유효기간 읽기 캐시와 변경 시 비우기](Java·Spring/짧은 유효기간 읽기 캐시와 변경 시 비우기.md) — 호출 1회 Map·작업 1건 Map·서버 TTL 캐시 범위 고르기, 읽기 전용·짧은 만료·변경 지점 evict·끄는 스위치, 판정 메소드 안에서만 쓰기, Caffeine 예제와 테스트 항목, 작업 1건 범위 권한 조회 재사용(null 위임 오버로드·인자 전부 key·containsKey·checked 예외 Loader)
 - [싱글턴 빈 필드에 사용자별 상태를 두면 생기는 문제](Java·Spring/싱글턴 빈 필드에 사용자별 상태를 두면 생기는 문제.md) — 동시 요청이 필드를 덮어써 남의 데이터가 섞임, OAuth 흐름 객체를 필드에 두면 다른 서버 콜백 실패, 실패 시 이전 사람 객체 재사용, 지역 변수로 바꾸기
 - [DB 작업 큐를 스케줄러로 처리할 때 막히는 지점](Java·Spring/DB 작업 큐를 스케줄러로 처리할 때 막히는 지점.md) — 한 건 예외로 전체 실패와 수신자·채널별 격리, 재기동 ING 고착, @Scheduled 겹침 없음으로 생기는 지연, 느린 메일이 인앱 알림을 붙잡는 이유(트랜잭션 하나), 조건부 선점·하트비트·메일 묶음 발송
+- [JSP에서 서버 값을 JavaScript 문자열에 넣을 때 이스케이프](Java·Spring/JSP에서 서버 값을 JavaScript 문자열에 넣을 때 이스케이프.md) — c:out을 JS 문자열에 넣으면 &amp;가 값에 남는 이유, spring:escapeBody javaScriptEscape, 넣는 위치별 이스케이프, 모델에 없는 이름은 빈 값
+- [폐쇄망 빌드용 Maven 로컬 저장소 파일 골라 보내기](Java·Spring/폐쇄망 빌드용 Maven 로컬 저장소 파일 골라 보내기.md) — 변경 전·후 빌드 차이로 새 파일만 모으기, 전이 의존성과 첫 빌드 플러그인, _remote.repositories 제외, mvn -o 검증
 
 ## DB·SQL
 - [AUTO_INCREMENT가 건너뛰며 증가하는 이유](DB·SQL/AUTO_INCREMENT가 건너뛰며 증가하는 이유.md) — auto_increment_increment와 Galera, LAST_INSERT_ID와 MAX의 차이, DDL에 따라온 덤프 시작값
@@ -82,6 +84,8 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [SQL에 DB 이름(스키마 접두어)을 박아 둘 때 생기는 문제](DB·SQL/SQL에 DB 이름(스키마 접두어)을 박아 둘 때 생기는 문제.md) — 복제 스키마로 띄우면 일부만 원래 DB를 읽는 증상, FK가 다른 스키마를 가리킴, Linux 대소문자 구분, 찾기·고치기·FK 확인 쿼리
 - [max+1 ID를 시퀀스·AUTO_INCREMENT로 바꾸기](DB·SQL/max+1 ID를 시퀀스·AUTO_INCREMENT로 바꾸기.md) — max+1이 겹치는 이유와 synchronized 한계, 방법 비교, selectKey pre(Oracle)·post(MySQL), 부모 먼저 넣고 받은 번호로 자식, FK 때문에 FOREIGN_KEY_CHECKS·Oracle 시작값 PL/SQL, 저장 중단→SQL→전체 배포 순서와 롤링 배포 위험
 - [DELETE 후 INSERT 동시 실행 시 InnoDB 교착(FK 검사 잠금)](DB·SQL/DELETE 후 INSERT 동시 실행 시 InnoDB 교착(FK 검사 잠금).md) — 재저장 교착 증상, 인덱스 추가로 오히려 늘어난 이유, FK 검사 공유 간격 잠금과 끝 자리 INSERT, 해결 방법 비교, 트랜잭션 바깥 전체 재시도
+- [Oracle 접속 오류로 서비스명과 계정 문제 구분(ORA-12514·01017)](DB·SQL/Oracle 접속 오류로 서비스명과 계정 문제 구분(ORA-12514·01017).md) — 단계별 오류 의미, CDB 서비스명으로 붙으면 PDB 계정이 01017, 서비스명·SID URL 형식, 연속 시도로 계정 잠김 주의
+- [DB 변경 스크립트를 단계별 자동 롤백으로 실행하기](DB·SQL/DB 변경 스크립트를 단계별 자동 롤백으로 실행하기.md) — DDL 암묵적 커밋, 존재 확인·실행 전 값 기록·역순 되돌리기, 없는 부모 키 FK 실패, AUTO_INCREMENT에 0 넣기와 NO_AUTO_VALUE_ON_ZERO, EXPLAIN UPDATE
 
 ## 네트워크
 - [LDAP 연결 끊김 원인 구분](네트워크/LDAP 연결 끊김 원인 구분.md) — 오류 메시지별 의미, TTL 비교로 끊은 주체 찾기
@@ -89,6 +93,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [WAF 웹 애플리케이션 방화벽과 오탐 대응](네트워크/WAF 웹 애플리케이션 방화벽과 오탐 대응.md) — L7 검사와 룰셋, 정상 입력 403 오탐 증상, 서버 로그에 요청이 없으면 의심, 예외 등록·인코딩
 - [HTTP Range 요청과 206 응답(미디어 재생 프록시)](네트워크/HTTP Range 요청과 206 응답(미디어 재생 프록시).md) — audio 태그의 구간 요청, iOS Safari 206 필수, 2단 프록시에서 상태코드·Content-Range 전달, RestTemplate 대신 직접 스트림 중계, 탭 즉시 재생
 - [SSH config Host 별칭과 hosts 파일의 차이](네트워크/SSH config Host 별칭과 hosts 파일의 차이.md) — git 원격의 짧은 호스트명 정체, SSH만 해석되어 ping은 안 됨, ssh -G 확인, IP로 접속하면 별칭 블록의 ssh-rsa 허용이 빠져 no matching host key type
+- [URL·쿼리 문자열 길이 제한(브라우저와 서버별)](네트워크/URL·쿼리 문자열 길이 제한(브라우저와 서버별).md) — 브라우저 2MB와 서버별 기본값(Tomcat·Apache·nginx 8KB, IIS 쿼리 2,048자), 인코딩·이중 인코딩 길이 증가, returnUrl 붙일 때 상한과 대안 경로
 
 ### 웹소켓
 - [WebSocket 기본 개념과 Java·브라우저 문법](네트워크/웹소켓/WebSocket 기본 개념과 Java·브라우저 문법.md) — HTTP와 차이, 핸드셰이크·세션·프레임·ping/pong 용어, JSR-356 생명주기 어노테이션, 연결별 인스턴스와 Spring 빈, Configurator 쿠키·Origin, 동기·비동기 전송, 브라우저 API, STOMP·SockJS 관계
@@ -167,3 +172,5 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [Google Calendar freebusy로 다른 사람 바쁜 시간 표시하기](기타/Google Calendar freebusy로 다른 사람 바쁜 시간 표시하기.md) — 남의 구글 일정 보는 방법 비교, events.list보다 가벼운 이유, Workspace·개인 Gmail 차이, 병렬 호출·짧은 타임아웃·별도 요청 덧칠, 시간 칸 경계(끝 미포함·초 단위·한 자리 월일)
 - [수식 트리 후위 순회와 후위 표기식](기타/수식 트리 후위 순회와 후위 표기식.md) — 왼→오→자신 방문, 예제 트리 풀이, 스택으로 검증
 - [주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기)](기타/주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기).md) — 창 방식 오차와 주기 줄이기, 저장된 값의 뜻을 바꿀 때 1회 변환·기본값·롤백, 파생 행 부모 키 실수와 보정 SQL, 경우표로 발송 시각 시험, 설정 행 없는 사용자에게 LEFT JOIN·COALESCE 기본값, 늦게 시작한 실행의 건너뜀
+- [웹 한글 편집기에 HTML 삽입 시 태그별 글꼴 적용](기타/웹 한글 편집기에 HTML 삽입 시 태그별 글꼴 적용.md) — p·div·span만 글꼴 반영, li·td·th·h·pre 안 글자는 굴림, span·p로 감싸 정규화, 본문 글꼴은 처음 글자에서 읽기
+- [여러 비동기 응답을 모아 한 번 보내기와 화면 이탈·bfcache 처리](기타/여러 비동기 응답을 모아 한 번 보내기와 화면 이탈·bfcache 처리.md) — 영역별 완료 후 1회 전송, 조회 시작 기준 상한 타이머, 회차 번호로 늦은 응답 제외, beforeunload·pagehide 차단, pageshow persisted 복원, 행마다 값 초기화
