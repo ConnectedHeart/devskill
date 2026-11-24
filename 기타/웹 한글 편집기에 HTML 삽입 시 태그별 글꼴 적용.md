@@ -1,6 +1,6 @@
 # 웹 한글 편집기에 HTML 삽입 시 태그별 글꼴 적용
 
-> 분류: 기타 · 최근 갱신: 2026-11-19
+> 분류: 기타 · 최근 갱신: 2026-11-23
 
 ## 한 줄 요약
 웹 기반 한글(HWP) 편집기에 HTML을 넣으면 `p`·`div`·`span`에 준 글꼴 style만 반영되고, `li`·`td`·`th`·`h1~h6`·`pre` 바로 안의 글자는 style을 줘도 HTML 기본 글꼴(굴림 10pt 등)로 들어간다. 글자를 `span`이나 `p`로 감싸서 넘기면 본문 글꼴로 맞출 수 있다.
@@ -26,6 +26,14 @@
 - 본문 글꼴을 "본문 필드 끝 글자"에서 읽으면, 표 칸처럼 끝에 이전 삽입 글이 남는 양식에서 두 번째 삽입 때 앞서 넣은 글(굴림)의 모양을 읽는다. 필드의 처음 글자에서 읽는 것이 안전하다.
 - `li>p`는 일부 편집기에서 빈 글머리표 줄을 만들 수 있어 `li>span`이 더 안전했다.
 
+### 사용자가 Ctrl+V로 붙여넣을 때 (표가 본문 폭을 넘는 문제)
+- 우리 코드의 "삽입" 버튼을 거치지 않고 클립보드에서 바로 붙이면, 복사한 웹 화면의 표 style(고정 `width`·`min-width`, 좌우 여백, `float`, `display:block`, `white-space:nowrap`)이 그대로 들어가 표가 본문 폭을 넘고 한쪽으로 치우칠 수 있다.
+- 편집기 틀(iframe)이 같은 출처에서 열리면, 틀 window의 `paste` 이벤트를 편집기보다 먼저(캡처 단계) 받아 `clipboardData.getData('text/html')`을 읽고 기본 붙여넣기를 막은 뒤, 정리한 HTML을 편집기 API로 커서 자리에 넣을 수 있다.
+- 가로채는 범위는 좁게 둔다. 표가 있을 때만 가로채고, 스프레드시트·워드 프로세서·편집기 안에서 복사한 것(원래 열 폭·서식 유지가 필요), 그림이 든 것, 읽기 전용 화면은 기본 동작에 맡긴다. 출처는 클립보드 HTML의 `<meta name="ProgId">`·`urn:schemas-microsoft-com:office` 같은 흔적으로 가린다.
+- 넣을 때 정리: 표·칸·감싼 요소의 폭·여백·float·display·nowrap style을 지우고 표에 `width="100%"`, 글자는 커서 자리 글꼴로 위의 정규화를 똑같이 적용. 선택 영역이 있으면 기본 붙여넣기처럼 지우고 넣고, 문단 중간·끝이면 새 문단에서 시작한다.
+- 표 없는 HTML까지 가로채 글꼴을 맞추면 다른 웹 페이지에서 복사한 글의 글꼴까지 모두 바뀐다. 특정 출처만 고르려면 그 출처가 클립보드에 넣는 실제 HTML 샘플이 필요하다.
+- 헤드리스 브라우저에서는 편집기 기본 붙여넣기가 끝나지 않는 경우가 있어, 수정 전 증상 재현과 최종 확인은 실제 브라우저로 한다.
+
 ## 핵심 코드
 ```javascript
 // 편집기에 넘기기 전에 글꼴이 안 먹는 태그 안 글자를 span/p로 감싼다. bodyFont 예: "font-family:돋움;font-size:12pt"
@@ -49,6 +57,28 @@ function normalizeForHwp(container, bodyFont) {
     h.parentNode.replaceChild(p, h);
   });
   return container.innerHTML;
+}
+```
+
+```javascript
+// 편집기 틀 window에서 표가 든 HTML 붙여넣기를 먼저 받아 폭을 정리한 뒤 넣는다
+function installTablePasteFix(frameWin, editor, getCursorFont) {
+  frameWin.addEventListener('paste', function (e) {
+    var html = e.clipboardData && e.clipboardData.getData('text/html');
+    if (!html || !/<table/i.test(html)) return;                     // 표 없으면 기본 동작
+    if (/ProgId|urn:schemas-microsoft-com:office/i.test(html)) return; // 오피스에서 복사
+    if (editor.isReadOnly()) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    var box = document.createElement('div');
+    box.innerHTML = html;
+    box.querySelectorAll('table, td, th, div').forEach(function (el) {
+      ['width', 'min-width', 'margin-left', 'margin-right', 'float', 'display', 'white-space']
+        .forEach(function (p) { el.style.removeProperty(p); });
+      el.removeAttribute('width');
+    });
+    box.querySelectorAll('table').forEach(function (t) { t.setAttribute('width', '100%'); });
+    editor.insertHtmlAtCursor(normalizeForHwp(box, getCursorFont()));  // 편집기 API 이름으로 바꾼다
+  }, true);                                                           // 캡처 단계
 }
 ```
 

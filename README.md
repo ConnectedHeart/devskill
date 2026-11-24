@@ -36,6 +36,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [Keycloak client credentials(Service accounts)로 사용자 없이 토큰 받기](인증·보안/Keycloak client credentials(Service accounts)로 사용자 없이 토큰 받기.md) — grant 방식 비교, DB 해시·만료 refresh token을 배치에 못 쓰는 이유, Service accounts 옵션과 service-account 계정 권한 인정, secret 무게 증가, 응답 ID 접미사 안전하게 떼기
 - [숨은 iframe으로 다른 시스템 SSO 입구를 먼저 호출하기](인증·보안/숨은 iframe으로 다른 시스템 SSO 입구를 먼저 호출하기.md) — 서버가 부르면 안 되는 이유, HttpOnly 토큰 넘기기, 클릭 때 선호출, onload 조용함·상한으로 끝 판정, 늦은 iframe 제거, 프레임 탈출과 sandbox, returnUrl 방식과 무한 루프 방지, 토큰 인코딩
 - [DB 계정 비밀번호 해시가 노출되는 조회와 대신 쓸 조회](인증·보안/DB 계정 비밀번호 해시가 노출되는 조회와 대신 쓸 조회.md) — SHOW GRANTS·SHOW CREATE USER·mysql.user의 해시, information_schema 권한 조회, 새었을 때 찾기·가리기·변경·노출 범위 줄이기, 지침만으로는 못 막는 점
+- [요청 값을 URL·파일 경로로 쓰는 서버 기능의 구멍(정적 파일 직접 접근·SSRF·경로 조작)](인증·보안/요청 값을 URL·파일 경로로 쓰는 서버 기능의 구멍(정적 파일 직접 접근·SSRF·경로 조작).md) — ID 숨기기가 대책이 아닌 이유, 판정 건너뛰는 요청 플래그·쿠키 속성, default-servlet-handler로 업로드 파일이 로그인 없이 받아짐, new URL(요청값)의 file://·내부망 SSRF, 파일명 ../ 경로 조작, 검사 대상 밖 경로 통과 규칙
 
 ## Java·Spring
 - [synchronized와 잠금 객체 나누기(lock striping)](Java·Spring/synchronized와 잠금 객체 나누기(lock striping).md) — 잠금 객체의 의미, 키 해시로 N개 잠금 고르기, JVM 한계
@@ -62,6 +63,8 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [싱글턴 빈 필드에 사용자별 상태를 두면 생기는 문제](Java·Spring/싱글턴 빈 필드에 사용자별 상태를 두면 생기는 문제.md) — 동시 요청이 필드를 덮어써 남의 데이터가 섞임, OAuth 흐름 객체를 필드에 두면 다른 서버 콜백 실패, 실패 시 이전 사람 객체 재사용, 지역 변수로 바꾸기
 - [DB 작업 큐를 스케줄러로 처리할 때 막히는 지점](Java·Spring/DB 작업 큐를 스케줄러로 처리할 때 막히는 지점.md) — 한 건 예외로 전체 실패와 수신자·채널별 격리, 재기동 ING 고착, @Scheduled 겹침 없음으로 생기는 지연, 느린 메일이 인앱 알림을 붙잡는 이유(트랜잭션 하나), 조건부 선점·하트비트·메일 묶음 발송
 - [JSP에서 서버 값을 JavaScript 문자열에 넣을 때 이스케이프](Java·Spring/JSP에서 서버 값을 JavaScript 문자열에 넣을 때 이스케이프.md) — c:out을 JS 문자열에 넣으면 &amp;가 값에 남는 이유, spring:escapeBody javaScriptEscape, 넣는 위치별 이스케이프, 모델에 없는 이름은 빈 값
+- [web.xml security-constraint로 http를 https로 리다이렉트하기](Java·Spring/web.xml security-constraint로 http를 https로 리다이렉트하기.md) — transport-guarantee CONFIDENTIAL, 목적지 포트는 WAS redirectPort, URL 패턴 범위, 철자 오류의 WAS별 차이, 앞단 TLS 종료 시 반복 리다이렉트
+- [OpenAPI 문서 화면(Scalar·Swagger UI) 노출 제어와 명세 JSON 보기](Java·Spring/OpenAPI 문서 화면(Scalar·Swagger UI) 노출 제어와 명세 JSON 보기.md) — 화면과 명세 경로의 역할, 설정값으로 따로 막기와 기본값, 재기동, CDN 의존과 Swagger UI 대체, 명세 받기·Postman Import, 브라우저·Notepad++ JSON 보기
 - [폐쇄망 빌드용 Maven 로컬 저장소 파일 골라 보내기](Java·Spring/폐쇄망 빌드용 Maven 로컬 저장소 파일 골라 보내기.md) — 변경 전·후 빌드 차이로 새 파일만 모으기, 전이 의존성과 첫 빌드 플러그인, _remote.repositories 제외, mvn -o 검증
 
 ## DB·SQL
@@ -85,6 +88,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [max+1 ID를 시퀀스·AUTO_INCREMENT로 바꾸기](DB·SQL/max+1 ID를 시퀀스·AUTO_INCREMENT로 바꾸기.md) — max+1이 겹치는 이유와 synchronized 한계, 방법 비교, selectKey pre(Oracle)·post(MySQL), 부모 먼저 넣고 받은 번호로 자식, FK 때문에 FOREIGN_KEY_CHECKS·Oracle 시작값 PL/SQL, 저장 중단→SQL→전체 배포 순서와 롤링 배포 위험
 - [DELETE 후 INSERT 동시 실행 시 InnoDB 교착(FK 검사 잠금)](DB·SQL/DELETE 후 INSERT 동시 실행 시 InnoDB 교착(FK 검사 잠금).md) — 재저장 교착 증상, 인덱스 추가로 오히려 늘어난 이유, FK 검사 공유 간격 잠금과 끝 자리 INSERT, 해결 방법 비교, 트랜잭션 바깥 전체 재시도
 - [Oracle 접속 오류로 서비스명과 계정 문제 구분(ORA-12514·01017)](DB·SQL/Oracle 접속 오류로 서비스명과 계정 문제 구분(ORA-12514·01017).md) — 단계별 오류 의미, CDB 서비스명으로 붙으면 PDB 계정이 01017, 서비스명·SID URL 형식, 연속 시도로 계정 잠김 주의
+- [화면 표시 이름과 검색 조건 컬럼 맞추기(경로 이름·띄어쓰기 무시)](DB·SQL/화면 표시 이름과 검색 조건 컬럼 맞추기(경로 이름·띄어쓰기 무시).md) — 보이는 이름으로 검색이 안 되는 원인, 표시 컬럼 OR 추가와 기존 비교 유지, 공백 무시 비교, 이력 테이블은 코드로 현재 마스터 조회, 통합 검색에 없는 컬럼, AND/OR 괄호 누락
 - [DB 변경 스크립트를 단계별 자동 롤백으로 실행하기](DB·SQL/DB 변경 스크립트를 단계별 자동 롤백으로 실행하기.md) — DDL 암묵적 커밋, 존재 확인·실행 전 값 기록·역순 되돌리기, 없는 부모 키 FK 실패, AUTO_INCREMENT에 0 넣기와 NO_AUTO_VALUE_ON_ZERO, EXPLAIN UPDATE
 
 ## 네트워크
@@ -116,7 +120,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [Remote Control로 휴대폰에서 이어 쓰기](Claude Code/Remote Control로 휴대폰에서 이어 쓰기.md) — 동작 구조, 켜는 방법, 끊기는 조건, 다른 기기에 세션 제목이 보이는 이유
 - [하네스 엔지니어링 개념](Claude Code/하네스 엔지니어링 개념.md) — 모델을 뺀 나머지 전부, 에이전트 루프·도구·컨텍스트·메모리·가드레일·피드백 루프, 지침 파일과 스킬 나누기, 사용자 규칙과 AI 관리 문서 분리·변경 감지, 승인 후 동기화, 규칙 충돌 검사
 - [지침과 지식 노트를 로딩 시점에 맞게 배치하기](Claude Code/지침과 지식 노트를 로딩 시점에 맞게 배치하기.md) — 기능별 로딩 시점, rules의 paths 지정 노트, 남길 것과 뺄 것, 로드 확인 방법, 늘어난 지침 분량 재고 줄이기(작업 종류별 합계, 조건부 절 분리, 전용 내용 이동, 중복·충돌 정리)
-- [권한 규칙으로 특정 명령만 자동 허용하기](Claude Code/권한 규칙으로 특정 명령만 자동 허용하기.md) — ask가 allow보다 우선, 입력 검사 래퍼만 allow, 자동 허용을 거둘 때의 함정, 지침 파일 보호의 빈틈
+- [권한 규칙으로 특정 명령만 자동 허용하기](Claude Code/권한 규칙으로 특정 명령만 자동 허용하기.md) — ask가 allow보다 우선, 입력 검사 래퍼만 allow, 자동 허용을 거둘 때의 함정, 지침 파일 보호의 빈틈, 자동 모드에서도 ask가 묻는 이유, 파일 이름 포함 ask를 쓰기 형태로 좁히기
 - [MCP 서버 도입 판단과 Serena(jdtls)](Claude Code/MCP 서버 도입 판단과 Serena(jdtls).md) — MCP 장점, 망 분리 환경에서 안 맞는 이유, 로컬 DB 읽기 전용 조건, jdtls·Serena와 grep 비교
 - [훅(hook) 작성 요령](Claude Code/훅(hook) 작성 요령.md) — 빠르게 끝내는 방법, 훅 출력이 컨텍스트로 들어가는 점, SubagentStart/Stop과 Stop 훅에 끊기는 백그라운드 서브에이전트, PowerShell 5.1 입력 인코딩(CP949)으로 JSON 해석 실패, 도구 호출마다 도는 훅의 비용 줄이기(동기 훅 하나·백그라운드 기록·작은 상태 파일)
 - [예약 작업 무인 실행과 권한 규칙](Claude Code/예약 작업 무인 실행과 권한 규칙.md) — 고정 스크립트와 좁은 허용 규칙, 놓친 날 보충 장치의 구멍(UserPromptSubmit 훅으로 무인 세션 구분), 권한 요청 대기로 멈춘 실행, 목차 기반 요약
@@ -171,6 +175,6 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [XML 응답의 빈 요소와 firstChild.nodeValue 오류](기타/XML 응답의 빈 요소와 firstChild.nodeValue 오류.md) — 빈 요소의 firstChild null, CDATA 채우기가 새 응답 경로에서 빠질 때 트리가 멈추는 증상, 원인 좁히기, 클라이언트·서버 수정
 - [Google Calendar freebusy로 다른 사람 바쁜 시간 표시하기](기타/Google Calendar freebusy로 다른 사람 바쁜 시간 표시하기.md) — 남의 구글 일정 보는 방법 비교, events.list보다 가벼운 이유, Workspace·개인 Gmail 차이, 병렬 호출·짧은 타임아웃·별도 요청 덧칠, 시간 칸 경계(끝 미포함·초 단위·한 자리 월일)
 - [수식 트리 후위 순회와 후위 표기식](기타/수식 트리 후위 순회와 후위 표기식.md) — 왼→오→자신 방문, 예제 트리 풀이, 스택으로 검증
-- [주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기)](기타/주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기).md) — 창 방식 오차와 주기 줄이기, 저장된 값의 뜻을 바꿀 때 1회 변환·기본값·롤백, 파생 행 부모 키 실수와 보정 SQL, 경우표로 발송 시각 시험, 설정 행 없는 사용자에게 LEFT JOIN·COALESCE 기본값, 늦게 시작한 실행의 건너뜀
-- [웹 한글 편집기에 HTML 삽입 시 태그별 글꼴 적용](기타/웹 한글 편집기에 HTML 삽입 시 태그별 글꼴 적용.md) — p·div·span만 글꼴 반영, li·td·th·h·pre 안 글자는 굴림, span·p로 감싸 정규화, 본문 글꼴은 처음 글자에서 읽기
+- [주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기)](기타/주기 실행 스케줄러로 미리 알림 보내기(시간 오차와 값 의미 바꾸기).md) — 창 방식 오차와 주기 줄이기, 저장된 값의 뜻을 바꿀 때 1회 변환·기본값·롤백, 파생 행 부모 키 실수와 보정 SQL, 경우표로 발송 시각 시험, 설정 행 없는 사용자에게 LEFT JOIN·COALESCE 기본값, 늦게 시작한 실행의 건너뜀, 한 값을 다중 선택으로 늘리기(자식 테이블·기존 칸 최솟값·마지막 알림 때 완료·ID+리드타임 키)
+- [웹 한글 편집기에 HTML 삽입 시 태그별 글꼴 적용](기타/웹 한글 편집기에 HTML 삽입 시 태그별 글꼴 적용.md) — p·div·span만 글꼴 반영, li·td·th·h·pre 안 글자는 굴림, span·p로 감싸 정규화, 본문 글꼴은 처음 글자에서 읽기, Ctrl+V 표 붙여넣기를 편집기 틀 paste 이벤트로 먼저 받아 폭 정리·가로채는 범위
 - [여러 비동기 응답을 모아 한 번 보내기와 화면 이탈·bfcache 처리](기타/여러 비동기 응답을 모아 한 번 보내기와 화면 이탈·bfcache 처리.md) — 영역별 완료 후 1회 전송, 조회 시작 기준 상한 타이머, 회차 번호로 늦은 응답 제외, beforeunload·pagehide 차단, pageshow persisted 복원, 행마다 값 초기화
