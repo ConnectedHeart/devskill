@@ -10,9 +10,9 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [cherry-pick 충돌 해결과 검증](Git/cherry-pick 충돌 해결과 검증.md) — 선행 커밋 찾기와 순서, 충돌이 많은 이유 3가지, 선행 커밋 필요와 옆줄 겹침 구분, worktree·merge-tree 시험, 연속 작업 묶음 중간 시점 결함, push 전 rebase --onto로 하나 빼기, 공백만 다른 충돌, 검증 절차
 - [git stash 적용 충돌 알아보기와 오래된 stash 정리](Git/git stash 적용 충돌 알아보기와 오래된 stash 정리.md) — Stashed changes 표시와 MERGE_HEAD 부재, reflog로 stash 경위 추적, HEAD 쪽 해결, 보관 후 drop
 - [브랜치 간 미반영 커밋 찾기(작성자·커미터·patch-id)](Git/브랜치 간 미반영 커밋 찾기(작성자·커미터·patch-id).md) — 작성일·커밋일과 --since, 작성자·커미터 차이, 여러 표기 매핑, 역병합 구조에서 --cherry-pick이 짝을 못 찾는 이유
-- [병합 커밋에서 사라진 코드 찾기](Git/병합 커밋에서 사라진 코드 찾기.md) — 같은 부모를 재병합해 비교, 지워짐 판정 기준, 복구와 이력 맞추기
+- [병합 커밋에서 사라진 코드 찾기](Git/병합 커밋에서 사라진 코드 찾기.md) — 같은 부모를 재병합해 비교, 지워짐 판정 기준, 복구와 이력 맞추기, 옮긴 조건의 옛 줄이 되살아나는 경우, 충돌 해결 실수 모양(두 벌 정의·중복 열·CDATA 뒤 찌꺼기), diff -w M^1 M 점검과 중복 ID 검사
 - [git commit --fixup과 autosquash](Git/git commit --fixup과 autosquash.md) — 뒤에 커밋이 쌓인 뒤 예전 커밋 고치기, amend와의 차이, 푸시 전에만 쓰는 이유
-- [푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기](Git/푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기.md) — force-push 대신 revert, 최신 순 revert, 함께 빼야 할 커밋·다른 저장소 영향, 빠지는 정의의 호출처 확인, worktree 작업과 긴 경로 오류
+- [푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기](Git/푸시된 브랜치에서 커밋 빼서 다른 브랜치로 옮기기.md) — force-push 대신 revert, 최신 순 revert, 함께 빼야 할 커밋·다른 저장소 영향, 빠지는 정의의 호출처 확인, worktree 작업과 긴 경로 오류, 보관 태그 1개+제거 커밋 1개와 revert의 revert로 복원, 의존 커밋 세 유형
 - [format-patch와 am으로 커밋 옮기기와 적용 전 검증](Git/format-patch와 am으로 커밋 옮기기와 적용 전 검증.md) — git am·apply·cherry-pick 비교, --cherry-pick으로 안 넘어간 커밋 찾기, 패치 생성, am --keep-non-patch로 [태그] 유지, am abort·skip·continue·quit 차이, 받는 쪽에 앞선 패치가 있어 생기는 충돌과 푸는 방향, 커밋 제목 파일명, 선행 패치 순서, 임시 인덱스로 apply --cached --check, 일부 패치 제외 적용, 멈췄을 때 abort·3way·skip, -3 원리와 fake ancestor, 멈춘 상태 읽기, conflictStyle diff3, 적용 스크립트 사전 검사, PowerShell 글롭 미전개, 빠진 패치 번호, stash 후 적용
 - [git 한글 경로 깨짐과 스테이징 후 삭제된 파일](Git/git 한글 경로 깨짐과 스테이징 후 삭제된 파일.md) — core.quotepath, 터미널 인코딩, 인덱스에서 되살리기와 rm --cached, restore --staged
 - [Windows PC에 Gitea로 git 서버 띄우기](Git/Windows PC에 Gitea로 git 서버 띄우기.md) — 공유 방식 비교, 위험한 기본값 막기, ROOT_URL과 이름 해석, 방화벽 허용 규칙을 먼저 넣는 이유(취소=차단 규칙), 팀·협업자 권한, safe.bareRepository 상속으로 push 404, 첫 clone OAuth 멈춤, 쓰기 권한 없는 push 403, OAuth 토큰 만료로 한 번만 실패
@@ -31,12 +31,13 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [비밀번호로 토큰을 발급하는 API를 추가할 때 점검할 것](인증·보안/비밀번호로 토큰을 발급하는 API를 추가할 때 점검할 것.md) — 세션 기반 토큰 수명, 옮길 보안 검사, 실패 로그, 평문 전송과 쿼리스트링 금지
 - [클라이언트가 만들 수 있는 값으로 권한을 판정할 때의 구멍](인증·보안/클라이언트가 만들 수 있는 값으로 권한을 판정할 때의 구멍.md) — 난독화 토큰 접두어 위조, X-Forwarded-For 조작과 구분자 주입, 서버 저장 속성·서명·접속 IP 비교, 예외 계정 허용 시 점검
 - [화면 제한과 서버 측 접근 확인(IDOR)](인증·보안/화면 제한과 서버 측 접근 확인(IDOR).md) — 화면 숨김은 보안이 아님, ID로 데이터를 꺼내는 API만 확인 필요, 저장 전 대상의 소유 판정, 클라이언트가 보낸 값 신뢰 금지, 권한은 ID로·파일은 경로로 고르는 다운로드와 ID+순번 방식, 흩어진 판정의 구멍(1단계만 판정·통과 플래그·못 찾으면 통과·경로별 조합·관리자 API)과 판정 통일·전수조사 요령
-- [URL의 ID 파라미터 숨기기와 서명 링크 토큰](인증·보안/URL의 ID 파라미터 숨기기와 서명 링크 토큰.md) — 사용자 본인에게는 숨길 수 없는 이유, 목표별 방법(POST·replaceState·토큰), DB 저장 토큰과 HMAC 서명 토큰 비교, 새로고침·메일 링크·후속 요청 한계
+- [URL의 ID 파라미터 숨기기와 서명 링크 토큰](인증·보안/URL의 ID 파라미터 숨기기와 서명 링크 토큰.md) — 사용자 본인에게는 숨길 수 없는 이유, 목표별 방법(POST·replaceState·토큰), DB 저장 토큰과 HMAC 서명 토큰 비교, ID까지 숨기는 AES-GCM 토큰(IV·AAD 용도·키ID·JDK AES-256 정책), 새로고침·메일 링크·후속 요청 한계
 - [인증 실패 응답 문구와 거부 사유 로그](인증·보안/인증 실패 응답 문구와 거부 사유 로그.md) — 판정 기준·설정 상태를 흘리는 문구, code 유지·message만 일반화, request 속성으로 사유 전달, 값 없는 사유 로그와 로그 위조 방지
 - [Keycloak client credentials(Service accounts)로 사용자 없이 토큰 받기](인증·보안/Keycloak client credentials(Service accounts)로 사용자 없이 토큰 받기.md) — grant 방식 비교, DB 해시·만료 refresh token을 배치에 못 쓰는 이유, Service accounts 옵션과 service-account 계정 권한 인정, secret 무게 증가, 응답 ID 접미사 안전하게 떼기
 - [숨은 iframe으로 다른 시스템 SSO 입구를 먼저 호출하기](인증·보안/숨은 iframe으로 다른 시스템 SSO 입구를 먼저 호출하기.md) — 서버가 부르면 안 되는 이유, HttpOnly 토큰 넘기기, 클릭 때 선호출, onload 조용함·상한으로 끝 판정, 늦은 iframe 제거, 프레임 탈출과 sandbox, returnUrl 방식과 무한 루프 방지, 토큰 인코딩
 - [DB 계정 비밀번호 해시가 노출되는 조회와 대신 쓸 조회](인증·보안/DB 계정 비밀번호 해시가 노출되는 조회와 대신 쓸 조회.md) — SHOW GRANTS·SHOW CREATE USER·mysql.user의 해시, information_schema 권한 조회, 새었을 때 찾기·가리기·변경·노출 범위 줄이기, 지침만으로는 못 막는 점
 - [요청 값을 URL·파일 경로로 쓰는 서버 기능의 구멍(정적 파일 직접 접근·SSRF·경로 조작)](인증·보안/요청 값을 URL·파일 경로로 쓰는 서버 기능의 구멍(정적 파일 직접 접근·SSRF·경로 조작).md) — ID 숨기기가 대책이 아닌 이유, 판정 건너뛰는 요청 플래그·쿠키 속성, default-servlet-handler로 업로드 파일이 로그인 없이 받아짐, new URL(요청값)의 file://·내부망 SSRF, 파일명 ../ 경로 조작, 검사 대상 밖 경로 통과 규칙
+- [데스크톱 앱과 웹 시스템 SSO 연동 방향(암호화 ID 입구와 URL 스킴)](인증·보안/데스크톱 앱과 웹 시스템 SSO 연동 방향(암호화 ID 입구와 URL 스킴).md) — 앱→웹·웹→앱 방향 구분, 비밀번호 없이 복호화만으로 로그인하는 입구의 재전송·무결성·키 유출 점검, 사용자 정의 URL 스킴으로 앱 실행과 등록, 지금 브라우저에서 안 되는 ActiveX
 
 ## Java·Spring
 - [synchronized와 잠금 객체 나누기(lock striping)](Java·Spring/synchronized와 잠금 객체 나누기(lock striping).md) — 잠금 객체의 의미, 키 해시로 N개 잠금 고르기, JVM 한계
@@ -89,6 +90,7 @@ Claude와 작업하면서 알게 된 기술 지식을 분류별·주제별로 �
 - [DELETE 후 INSERT 동시 실행 시 InnoDB 교착(FK 검사 잠금)](DB·SQL/DELETE 후 INSERT 동시 실행 시 InnoDB 교착(FK 검사 잠금).md) — 재저장 교착 증상, 인덱스 추가로 오히려 늘어난 이유, FK 검사 공유 간격 잠금과 끝 자리 INSERT, 해결 방법 비교, 트랜잭션 바깥 전체 재시도
 - [Oracle 접속 오류로 서비스명과 계정 문제 구분(ORA-12514·01017)](DB·SQL/Oracle 접속 오류로 서비스명과 계정 문제 구분(ORA-12514·01017).md) — 단계별 오류 의미, CDB 서비스명으로 붙으면 PDB 계정이 01017, 서비스명·SID URL 형식, 연속 시도로 계정 잠김 주의
 - [화면 표시 이름과 검색 조건 컬럼 맞추기(경로 이름·띄어쓰기 무시)](DB·SQL/화면 표시 이름과 검색 조건 컬럼 맞추기(경로 이름·띄어쓰기 무시).md) — 보이는 이름으로 검색이 안 되는 원인, 표시 컬럼 OR 추가와 기존 비교 유지, 공백 무시 비교, 이력 테이블은 코드로 현재 마스터 조회, 통합 검색에 없는 컬럼, AND/OR 괄호 누락
+- [로컬 개발용 Oracle 버전 고르기(12c 문법과 JDBC 드라이버)](DB·SQL/로컬 개발용 Oracle 버전 고르기(12c 문법과 JDBC 드라이버).md) — 12c 전용 문법 찾기, 드라이버 세대와 ORA-28040, 21c XE·23ai Free 한도, PDB 접속과 수동 시작
 - [DB 변경 스크립트를 단계별 자동 롤백으로 실행하기](DB·SQL/DB 변경 스크립트를 단계별 자동 롤백으로 실행하기.md) — DDL 암묵적 커밋, 존재 확인·실행 전 값 기록·역순 되돌리기, 없는 부모 키 FK 실패, AUTO_INCREMENT에 0 넣기와 NO_AUTO_VALUE_ON_ZERO, EXPLAIN UPDATE
 
 ## 네트워크
